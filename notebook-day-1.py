@@ -652,7 +652,7 @@ def _(l, np, plt, redstart_solve):
     plt.legend()
 
     plt.show()
-    return
+    return (y0,)
 
 
 @app.cell(hide_code=True)
@@ -1178,6 +1178,36 @@ def _(M, g, l, np, svg):
             flame_group
         )
 
+    return (booster,)
+
+
+@app.cell
+def _(M, booster, g, l, mo, np, world):
+    mo.hstack(
+        [
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(0, l/2, 0, 0, 0),
+                )
+            ),
+
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(0, l, 0, M * g, 0),
+                )
+            ),
+
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(-l/2, l, np.pi / 4, 2 * M * g, np.pi / 2),
+                )
+            ),
+        ],
+        justify="space-around",
+    )
     return
 
 
@@ -1229,56 +1259,113 @@ def _(mo):
 
 
 @app.cell
-def _(M, g, l, np, svg):
+def _(M, g, l, np):
     def booster_anim(x, y, theta, f, phi, T=5.0):
-        # Échantillons pour les animations
-        ts = np.linspace(0, T, 50)
+        """
+        Génère un fragment SVG animé du booster.
+    
+        Arguments:
+            x, y, theta, f, phi : fonctions du temps t
+            T : durée de l'animation en secondes
+    
+        Retourne:
+            str : fragment SVG animé
+        """
+        N = 60  # nombre d'échantillons
+        ts = np.linspace(0, T, N)
 
-        # 1. Trajectoire du centre de masse (x, y)
-        positions = ";".join([f"{x(t)},{y(t)}" for t in ts])
-
-        # 2. Rotation du booster (theta)
-        rotations = ";".join([f"{np.degrees(theta(t))}" for t in ts])
-
-        # 3. Longueur de la flamme : proportionnelle à f, référence = l/2 quand f = M*g
-        flame_lengths = ";".join([f"{f(t) * (l/2) / (M * g)}" for t in ts])
-
-        # 4. Orientation de la flamme par rapport à l'axe du booster (phi)
-        flame_angles = ";".join([f"{np.degrees(phi(t))}" for t in ts])
-
-        # Corps du booster (rectangle centré en (0,0) local, axe y vers le haut)
-        body = svg.rect(x=-0.1, y=-l/2, width=0.2, height=l, fill="gray", rx=0.05)
-
-        # Flamme (rectangle de base, hauteur initiale 1)
-        flame = svg.rect(x=-0.05, y=0, width=0.1, height=1, fill="orange")
-
-        # Groupe de la flamme : placée à la base (translate(0, -l/2)) et orientée vers le bas (scaleY(-1))
-        # La flamme subit une rotation phi autour de son origine (attache)
-        flame_group = svg.g(
-            [
-                flame,
-                svg.animate(attributeName="height", values=flame_lengths, dur=f"{T}s", repeatCount="indefinite"),
-                svg.animateTransform(attributeName="transform", type="rotate", values=flame_angles, dur=f"{T}s", repeatCount="indefinite")
-            ],
-            transform=f"translate(0, {-l/2}) scale(1, -1)"
+        # --- Keyframes ---
+        # Translation : "x1 y1;x2 y2;..."  (en coordonnées SVG, y inversé)
+        translations = ";".join(
+            f"{x(t):.4f} {-y(t):.4f}" for t in ts
         )
 
-        # Assemblage final : le booster + la flamme
-        # Le groupe entier subit la translation (x,y) et la rotation theta
-        return svg.g(
-            [
-                body,
-                flame_group,
-                svg.animateMotion(values=positions, dur=f"{T}s", repeatCount="indefinite"),
-                svg.animateTransform(attributeName="transform", type="rotate", values=rotations, dur=f"{T}s", repeatCount="indefinite", additive="sum")
-            ]
+        # Rotation : angle en degrés (theta positif = sens anti-horaire → négatif en SVG)
+        rotations = ";".join(
+            f"{-np.degrees(theta(t)):.4f}" for t in ts
         )
 
-    return
+        # Longueur de la flamme : l/2 quand f = M*g
+        flame_len = ";".join(
+            f"{f(t) * (l / 2) / (M * g):.4f}" for t in ts
+        )
+
+        # Angle de la flamme en degrés (phi, dans le repère du booster)
+        flame_rot = ";".join(
+            f"{np.degrees(phi(t)):.4f}" for t in ts
+        )
+
+        # --- Dimensions ---
+        half_l = l / 2
+        body_w = 0.2
+        flame_w = 0.1
+
+        # Corps : rectangle centré sur le CDM
+        body = (
+            f'<rect x="{-body_w/2}" y="{-half_l}" '
+            f'width="{body_w}" height="{l}" '
+            f'fill="#aab4c8" rx="0.04" stroke="#667" stroke-width="0.01"/>'
+        )
+
+        # Nez du booster (pointe)
+        nose = (
+            f'<polygon points="0,{half_l} {-body_w/2},{half_l - 0.15} '
+            f'{body_w/2},{half_l - 0.15}" fill="#e74c3c"/>'
+        )
+
+        # Flamme : part de la base (−half_l), orientée vers le bas
+        # Elle est dans un groupe avec rotation phi autour de la base
+        flame_svg = (
+            f'<g transform="translate(0, {-half_l})">'
+            f'  <rect x="{-flame_w/2}" y="0" width="{flame_w}" height="0" '
+            f'        fill="#f39c12" opacity="0.9">'
+            f'    <animate attributeName="height" '
+            f'             values="{flame_len}" '
+            f'             dur="{T}s" repeatCount="indefinite"/>'
+            f'  </rect>'
+            f'  <animateTransform attributeName="transform" type="rotate" '
+            f'                    values="{flame_rot}" '
+            f'                    dur="{T}s" repeatCount="indefinite" additive="sum"/>'
+            f'</g>'
+        )
+
+        # Groupe principal : translation + rotation du booster entier
+        booster_svg = (
+            f'<g>'
+            f'  {body}{nose}{flame_svg}'
+            f'  <animateTransform attributeName="transform" type="translate" '
+            f'                    values="{translations}" '
+            f'                    dur="{T}s" repeatCount="indefinite"/>'
+            f'  <animateTransform attributeName="transform" type="rotate" '
+            f'                    values="{rotations}" '
+            f'                    dur="{T}s" repeatCount="indefinite" additive="sum"/>'
+            f'</g>'
+        )
+
+        return booster_svg
+
+    return (booster_anim,)
 
 
 @app.cell
-def _():
+def _(M, booster_anim, g, l, mo, np, world):
+    def booster_anim_0():
+        T = 5.0
+        def x(t):
+            return -l/2 + l * (t / T)
+        def y(t):
+            return l/2 + l/2 * (t / T)
+        def theta(t):
+            return (t / T) * 2 * np.pi
+        def f(t):
+            return M * g * (t / T)
+        def phi(t):
+            return 2 * np.pi * (t / T)
+        return booster_anim(x, y, theta, f, phi, T=T)
+
+    mo.Html(
+        world([-3, 3, -2, 4], booster_anim_0())
+    ).center()
     return
 
 
@@ -1297,6 +1384,58 @@ def _(mo):
 
     4. The "controlled landing" scenario (see above).
     """)
+    return
+
+
+@app.cell
+def _(M, booster_anim, g, mo, np, redstart_solve, world, y0):
+
+    # Fonction utilitaire pour créer une animation à partir d'une simulation
+    def create_animation(sol, f_fun, phi_fun, T, view_box=[-3, 3, -2, 4]):
+        # sol est l'objet solution de solve_ivp (avec dense_output)
+        def x(t): return sol(t)[0]
+        def y(t): return sol(t)[2]
+        def theta(t): return sol(t)[4]
+        def f(t): return f_fun(t)
+        def phi(t): return phi_fun(t)
+        return mo.Html(world(view_box, booster_anim(x, y, theta, f, phi, T=T)))
+
+
+    T_sim = 5.0
+
+    # Scénario 1 : f=0, phi=0
+    print("Scénario 1 : Chute libre (f=0)")
+    y0_freefall = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]
+    def f_phi1(t, y): return np.array([0.0, 0.0])
+    sol1 = redstart_solve((0, T_sim), y0, f_phi1)
+    anim1 = create_animation(sol1, lambda t: 0.0, lambda t: 0.0, T_sim)
+
+    # Scénario 2 : f=Mg, phi=0
+    print("Scénario 2 : Poussée équilibrant la gravité (f=Mg, phi=0)")
+    def f_phi2(t, y): return np.array([M*g, 0.0])
+    sol2 = redstart_solve((0, T_sim), y0_freefall, f_phi2)
+    anim2 = create_animation(sol2, lambda t: M*g, lambda t: 0.0, T_sim)
+
+    # Scénario 3 : f=Mg, phi=pi/8
+    print("Scénario 3 : Poussée inclinée (phi=π/8)")
+    def f_phi3(t, y): return np.array([M*g, np.pi/8])
+    sol3 = redstart_solve((0, T_sim), y0_freefall, f_phi3)
+    anim3 = create_animation(sol3, lambda t: M*g, lambda t: np.pi/8, T_sim)
+
+    # Scénario 4 : Controlled landing (f(t)=0.384*t+0.44, phi=0)
+    print("Scénario 4 : Atterrissage contrôlé")
+    y0_landing = [0.0, 0.0, 10.0, -2.0, 0.0, 0.0]
+    def f_phi4(t, y): 
+        f = 0.384 * t + 0.44
+        return np.array([f, 0.0])
+    sol4 = redstart_solve((0, T_sim), y0_landing, f_phi4)
+    anim4 = create_animation(sol4, lambda t: 0.384*t + 0.44, lambda t: 0.0, T_sim)
+
+    # Affichage en grille 2x2
+    mo.vstack([
+        mo.hstack([anim1, anim2], justify="space-around"),
+        mo.hstack([anim3, anim4], justify="space-around")
+    ])
     return
 
 
