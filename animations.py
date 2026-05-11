@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.4"
+__generated_with = "0.20.4"
 app = marimo.App(width="medium")
 
 
@@ -402,6 +402,11 @@ def _():
     from svg import animate_transform
 
     return (animate_transform,)
+
+
+@app.cell
+def _():
+    return
 
 
 @app.cell

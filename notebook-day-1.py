@@ -71,7 +71,7 @@ def _():
     import numpy as np
     import numpy.linalg as la
 
-    return
+    return (np,)
 
 
 @app.cell(hide_code=True)
@@ -128,6 +128,15 @@ def _(mo):
     return
 
 
+@app.cell
+def _():
+
+    g = 1.0      #m/s²
+    M = 1.0      #kg
+    l = 2.0      #m
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -138,12 +147,72 @@ def _(mo):
     return
 
 
+@app.cell
+def _(np):
+    def force_components(f, theta, phi):
+        fx = -f * np.sin(theta + phi)
+        fy =  f * np.cos(theta + phi)
+        return fx, fy
+
+
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    $$
+    f_x = -f \sin(\theta + \phi)
+    $$
+
+    $$
+    f_y = f \cos(\theta + \phi)
+    $$
+    """)
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## 🧩 Center of Mass
 
     Give the ordinary differential equation that governs the evolution of the position $(x, y)$ of the center of mass of the booster.
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    def center_of_mass_dynamics(M, f, theta, phi, g):
+
+        ax = -f * np.sin(theta + phi) / M
+        ay =  f * np.cos(theta + phi) / M - g
+        return ax, ay
+
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    \[
+    \text{En appliquant la deuxième loi de Newton : } M\vec{a} = \vec{F}
+    \]
+
+    \[
+    \text{Les forces appliquées sont la poussée du moteur et la gravité.}
+    \]
+
+    \[
+    \text{Composante horizontale :}
+    \quad \ddot{x}(t) = \frac{-f \sin(\theta + \phi)}{M}
+    \]
+
+    \[
+    \text{Composante verticale :}
+    \quad \ddot{y}(t) = \frac{f \cos(\theta + \phi)}{M} - g
+    \]
     """)
     return
 
