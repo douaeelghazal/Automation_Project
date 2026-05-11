@@ -1101,6 +1101,86 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, g, l, np, svg):
+
+
+    def booster(x, y, theta, f, phi):
+        """
+        Draws a simple booster + flame using SVG.
+
+        Parameters:
+            x, y   : center of mass position
+            theta  : booster orientation (radians, 0 = vertical)
+            f      : thrust force (N)
+            phi    : engine angle relative to booster axis (radians)
+
+        Returns:
+            SVG group element
+        """
+
+        # -------------------------
+        # 1. Booster body
+        # -------------------------
+        body_width = 0.8
+        body_height = l
+
+        body = svg.rect(
+            x=-body_width/2,
+            y=-body_height/2,
+            width=body_width,
+            height=body_height,
+            fill="gray",
+            stroke="black",
+            stroke_width=0.05
+        )
+
+        # Rotate + translate booster
+        booster_group = svg.g(
+            transform=f"translate({x}, {y}) rotate({-np.degrees(theta)})"
+        )(body)
+
+        # -------------------------
+        # 2. Flame
+        # -------------------------
+
+        # Reference scaling
+        L_ref = l / 2  # when f = Mg → flame = l/2
+        flame_length = (f / (M * g)) * L_ref if f > 0 else 0
+
+        flame_width = 0.3
+
+        # flame direction
+        flame_angle = theta + phi
+
+        flame = svg.rect(
+            x=-flame_width/2,
+            y=-flame_length,
+            width=flame_width,
+            height=flame_length,
+            fill="orange",
+            stroke="red",
+            stroke_width=0.03
+        )
+
+        flame_group = svg.g(
+            transform=(
+                f"translate({x}, {y}) "
+                f"rotate({-np.degrees(flame_angle)})"
+            )
+        )(flame)
+
+        # -------------------------
+        # 3. Combine
+        # -------------------------
+        return svg.g()(
+            booster_group,
+            flame_group
+        )
+
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -1145,6 +1225,60 @@ def _(mo):
     ).center()
     ```
     """)
+    return
+
+
+@app.cell
+def _(M, g, l, np, svg):
+    def booster_anim(x, y, theta, f, phi, T=5.0):
+        # Échantillons pour les animations
+        ts = np.linspace(0, T, 50)
+
+        # 1. Trajectoire du centre de masse (x, y)
+        positions = ";".join([f"{x(t)},{y(t)}" for t in ts])
+
+        # 2. Rotation du booster (theta)
+        rotations = ";".join([f"{np.degrees(theta(t))}" for t in ts])
+
+        # 3. Longueur de la flamme : proportionnelle à f, référence = l/2 quand f = M*g
+        flame_lengths = ";".join([f"{f(t) * (l/2) / (M * g)}" for t in ts])
+
+        # 4. Orientation de la flamme par rapport à l'axe du booster (phi)
+        flame_angles = ";".join([f"{np.degrees(phi(t))}" for t in ts])
+
+        # Corps du booster (rectangle centré en (0,0) local, axe y vers le haut)
+        body = svg.rect(x=-0.1, y=-l/2, width=0.2, height=l, fill="gray", rx=0.05)
+
+        # Flamme (rectangle de base, hauteur initiale 1)
+        flame = svg.rect(x=-0.05, y=0, width=0.1, height=1, fill="orange")
+
+        # Groupe de la flamme : placée à la base (translate(0, -l/2)) et orientée vers le bas (scaleY(-1))
+        # La flamme subit une rotation phi autour de son origine (attache)
+        flame_group = svg.g(
+            [
+                flame,
+                svg.animate(attributeName="height", values=flame_lengths, dur=f"{T}s", repeatCount="indefinite"),
+                svg.animateTransform(attributeName="transform", type="rotate", values=flame_angles, dur=f"{T}s", repeatCount="indefinite")
+            ],
+            transform=f"translate(0, {-l/2}) scale(1, -1)"
+        )
+
+        # Assemblage final : le booster + la flamme
+        # Le groupe entier subit la translation (x,y) et la rotation theta
+        return svg.g(
+            [
+                body,
+                flame_group,
+                svg.animateMotion(values=positions, dur=f"{T}s", repeatCount="indefinite"),
+                svg.animateTransform(attributeName="transform", type="rotate", values=rotations, dur=f"{T}s", repeatCount="indefinite", additive="sum")
+            ]
+        )
+
+    return
+
+
+@app.cell
+def _():
     return
 
 
