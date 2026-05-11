@@ -927,7 +927,7 @@ def _(mo):
 def _():
     from svg import svg, transform, animate_transform
 
-    return
+    return (svg,)
 
 
 @app.cell(hide_code=True)
@@ -981,6 +981,71 @@ def _(mo):
     )
     ```
     """)
+    return
+
+
+@app.cell
+def _(svg):
+    def world(view_box, *objects):
+        x_min, x_max, y_min, y_max = view_box
+        w = x_max - x_min
+        h = y_max - y_min
+
+        # Natural coordinates viewBox (no manual inversion)
+        vb = f"{x_min} {y_min} {w} {h}"
+
+        # Sky: from y_min to y_max
+        sky = svg.rect(x=x_min, y=y_min, width=w, height=h, fill="#87CEEB")
+
+        # Ground: from y=0 down to y_min (if y_min < 0)
+        ground_height = max(0, -y_min)
+        ground = svg.rect(x=x_min, y=0, width=w, height=ground_height, fill="#8B7355")
+
+        # Target: 2m wide green pad at y=0
+        target = svg.rect(x=-1, y=-0.05, width=2, height=0.05, fill="green")
+
+        inner = "\n".join([
+            str(sky), str(ground), str(target)
+        ] + [str(obj) for obj in objects])
+
+        return (
+            f'<svg xmlns="http://www.w3.org/2000/svg" '
+            f'viewBox="{vb}" width="300" height="300" '
+            f'style="transform: scaleY(-1); display:block;">'
+            f'{inner}</svg>'
+        )
+
+    return (world,)
+
+
+@app.cell
+def _(mo, svg, world):
+    mo.hstack(
+        [
+            # 1. Monde vide
+            mo.Html(
+                world([-3, 3, -2, 4])
+            ),
+
+            # 2. Monde avec un carré noir sur la zone d’atterrissage
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    svg.rect(x=-1, y=0, width=2, height=2, fill="black"),
+                )
+            ),
+
+            # 3. Monde avec un carré rouge à gauche et bleu à droite
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    svg.rect(x=-3, y=2, width=2, height=2, fill="red"),
+                    svg.rect(x=1, y=2, width=2, height=2, fill="blue"),
+                )
+            )
+        ],
+        justify="space-around"
+    )
     return
 
 
