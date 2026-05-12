@@ -1814,6 +1814,261 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## Linearized Model
+
+    The nonlinear lateral dynamics are
+    \[
+    M\ddot{x}=-f\sin(\theta+\phi),
+    \qquad
+    J\ddot{\theta}=-f\frac{\ell}{2}\sin\phi.
+    \]
+
+    We linearize around the equilibrium
+    \[
+    \theta=0,
+    \qquad
+    \phi=0,
+    \qquad
+    f=Mg,
+    \]
+    using the small-angle approximations
+    \[
+    \sin(\theta+\phi)\approx \Delta\theta+\Delta\phi,
+    \qquad
+    \sin\phi\approx \Delta\phi.
+    \]
+
+    The linearized equations become
+    \[
+    \Delta\ddot{x}
+    =
+    -g(\Delta\theta+\Delta\phi),
+    \qquad
+    \Delta\ddot{\theta}
+    =
+    -\frac{Mg\ell}{2J}\Delta\phi.
+    \]
+
+    Defining the state
+    \[
+    s=
+    \begin{pmatrix}
+    \Delta x \\
+    \Delta\dot{x} \\
+    \Delta\theta \\
+    \Delta\dot{\theta}
+    \end{pmatrix},
+    \]
+    the system can be written as
+    \[
+    \dot{s}=As+B\Delta\phi,
+    \]
+    with
+    \[
+    A=
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 \\
+    0 & 0 & -g & 0 \\
+    0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0
+    \end{bmatrix},
+    \qquad
+    B=
+    \begin{bmatrix}
+    0 \\
+    -g \\
+    0 \\
+    -\dfrac{Mg\ell}{2J}
+    \end{bmatrix}.
+    \]
+
+    For
+    \[
+    g=1,
+    \qquad
+    M=1,
+    \qquad
+    \ell=2,
+    \qquad
+    J=\frac{M\ell^2}{12}=\frac13,
+    \]
+    we obtain
+    \[
+    \frac{Mg\ell}{2J}=3.
+    \]
+
+
+    ## Free Evolution (\(\Delta\phi=0\))
+
+    With no control input,
+    \[
+    \Delta\ddot{\theta}=0.
+    \]
+
+    Using the initial conditions
+    \[
+    \Delta\theta(0)=\frac{\pi}{4},
+    \qquad
+    \Delta\dot{\theta}(0)=0,
+    \]
+    we obtain
+    \[
+    \Delta\theta(t)=\frac{\pi}{4}.
+    \]
+
+    Then
+    \[
+    \Delta\ddot{x}
+    =
+    -g\,\Delta\theta
+    =
+    -\frac{\pi}{4},
+    \]
+    which is constant. Integrating twice with
+    \[
+    \Delta x(0)=0,
+    \qquad
+    \Delta\dot{x}(0)=0,
+    \]
+    gives
+    \[
+    \boxed{
+    \Delta\theta(t)=\frac{\pi}{4},
+    \qquad
+    \Delta x(t)=-\frac{\pi}{8}t^2
+    }.
+    \]
+
+    Thus, the tilt angle remains constant while the horizontal position diverges quadratically with time.
+    """)
+    return
+
+
+@app.cell
+def _(g, np, plt, scipy):
+    # Linearized lateral dynamics matrix (phi = 0, f = Mg)
+    # state: [Δx, Δvx, Δθ, Δω]
+    A1 = np.array([
+        [0, 1,  0, 0],
+        [0, 0, -g, 0],
+        [0, 0,  0, 1],
+        [0, 0,  0, 0],
+    ])
+
+    print("A =\n", A1)
+    print("Eigenvalues of A:", np.linalg.eigvals(A1))
+
+    # Initial conditions: x=0, vx=0, theta=pi/4, omega=0
+    s0 = np.array([0.0, 0.0, np.pi / 4, 0.0])
+
+    # Numerical solution via matrix exponential s(t) = exp(A*t) @ s0
+    t = np.linspace(0, 30, 3000)
+    x_num     = np.array([scipy.linalg.expm(A1 * ti) @ s0 for ti in t])[:, 0]
+    theta_num = np.array([scipy.linalg.expm(A1 * ti) @ s0 for ti in t])[:, 2]
+
+    # Analytical solution
+    x_ana     = -(g * np.pi / 8) * t**2
+    theta_ana = np.full_like(t, np.pi / 4)
+
+    # Plots
+    fig, axes = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+
+    axes[0].plot(t, x_num, color="steelblue", lw=2, label="numerical $e^{At}s_0$")
+    axes[0].plot(t, x_ana, color="orange",    lw=2, ls="--", label=r"analytical $-\frac{\pi}{8}t^2$")
+    axes[0].set_ylabel(r"$\Delta x(t)$ (m)", fontsize=13)
+    axes[0].set_title(r"Linearized free evolution — $\phi(t)=0$, $\theta(0)=\pi/4$", fontsize=13)
+    axes[0].legend(fontsize=11)
+    axes[0].grid(True, alpha=0.4)
+
+    axes[1].plot(t, theta_num, color="tomato",  lw=2, label=r"numerical $\Delta\theta(t)$")
+    axes[1].plot(t, theta_ana, color="purple",  lw=2, ls="--", label=r"analytical $\pi/4$")
+    axes[1].axhline(np.pi/2,  color="grey", ls=":", lw=1, label=r"$\pm\pi/2$ validity limit")
+    axes[1].axhline(-np.pi/2, color="grey", ls=":", lw=1)
+    axes[1].set_ylabel(r"$\Delta\theta(t)$ (rad)", fontsize=13)
+    axes[1].set_xlabel("time $t$ (s)", fontsize=13)
+    axes[1].legend(fontsize=11)
+    axes[1].grid(True, alpha=0.4)
+
+    plt.tight_layout()
+    plt.savefig("linearized_free_dynamics.png", dpi=150)
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Interpretation and Stability Analysis
+
+     What the Graphs Show
+
+    The angle trajectory
+    \[
+    \theta(t)
+    \]
+    is a horizontal line at
+    \[
+    \frac{\pi}{4},
+    \]
+    showing that the tilt remains constant over time.
+
+    The position trajectory
+    \[
+    x(t)
+    \]
+    is a downward-opening parabola:
+    \[
+    x(t)=-\frac{\pi}{8}t^2,
+    \]
+    which diverges to
+    \[
+    -\infty.
+    \]
+
+    The numerical simulation and analytical solution overlap perfectly, validating the model and computations.
+
+
+    ## Stability Analysis
+
+    The characteristic polynomial of the system matrix \(A\) is
+    \[
+    \lambda^4=0,
+    \]
+    so all four eigenvalues are
+    \[
+    \lambda_1=\lambda_2=\lambda_3=\lambda_4=0.
+    \]
+
+    Since \(A\) contains a non-trivial Jordan block,
+    \[
+    e^{At}
+    \]
+    grows polynomially with time. Therefore, the equilibrium is unstable.
+
+
+    ## Physical Interpretation
+
+    With
+    \[
+    \phi=0,
+    \]
+    the reactor produces no corrective torque, so any initial tilt persists indefinitely.
+
+    This constant tilt permanently misaligns the thrust vector, creating a constant horizontal acceleration:
+    \[
+    \Delta\ddot{x}
+    =
+    -g\,\Delta\theta(0).
+    \]
+
+    As a result, the booster drifts sideways without bound. The system behaves like an inverted pendulum without restoring force, showing that active feedback through \(\phi\) is necessary for stabilization.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Manually Tuned Controller
 
     Try to find the two missing coefficients of the matrix
