@@ -1614,7 +1614,7 @@ def _(A, B, np):
     print(f"Rank: {rank}")
     print(f"State space dimension: {A.shape[0]}")
     print(f"Controllable: {rank == A.shape[0]}")
-    return
+    return (controllability_matrix,)
 
 
 @app.cell(hide_code=True)
@@ -1628,6 +1628,88 @@ def _(mo):
 
     - Check the controllability of this new system.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The reduced state vector is defined by selecting only the lateral motion variables:
+    \[
+    X=
+    \begin{bmatrix}
+    x \\
+    \dot{x} \\
+    \theta \\
+    \dot{\theta}
+    \end{bmatrix}
+    \]
+
+    The control input is chosen as the angular deflection of the thrust direction:
+
+    \[
+    u=\Delta\phi
+    \]
+
+    Under the assumption of small angles and by fixing the thrust magnitude to \(f = Mg\), the nonlinear model can be linearized around the equilibrium point. The resulting reduced-order dynamics describe the coupling between the lateral translation and the rotational motion of the system:
+
+    \[
+    \ddot{x}=-(\theta+\phi)
+    \]
+
+    \[
+    \ddot{\theta}=-3\phi
+    \]
+
+    These equations show that the lateral acceleration is influenced both by the tilt angle \(\theta\) and the control input \(\phi\), while the rotational dynamics are directly driven by the control input.
+
+    The system can then be written in the standard state-space form:
+
+    \[
+    \dot{X}=AX+Bu
+    \]
+
+    where the matrices \(A\) and \(B\) are given by:
+
+    \[
+    A=
+    \begin{bmatrix}
+    0&1&0&0\\
+    0&0&-1&0\\
+    0&0&0&1\\
+    0&0&0&0
+    \end{bmatrix}
+    \]
+
+    \[
+    B=
+    \begin{bmatrix}
+    0\\
+    -1\\
+    0\\
+    -3
+    \end{bmatrix}
+    \]
+
+    This representation highlights that the system is of fourth order and that the input \(u=\phi\) acts simultaneously on both the translational and rotational dynamics, which is essential for the controllability analysis.
+    """)
+    return
+
+
+@app.cell
+def _(A, B, controllability_matrix, np):
+    # Extract lateral subsystem from full A, B
+    lat_idx = [0, 1, 4, 5]   # rows/cols for x, vx, theta, omega
+
+    A_lat = A[np.ix_(lat_idx, lat_idx)]
+    B_lat = B[lat_idx, 1:2]  # column 1 = Delta phi input
+
+    print("A_lat =\n", A_lat)
+    print("B_lat =\n", B_lat)
+    C_lat = controllability_matrix(A_lat, B_lat)
+    rank_lat = np.linalg.matrix_rank(C_lat)
+    print(f"Rank: {rank_lat}")
+    print(f"Controllable: {rank_lat == A_lat.shape[0]}")
     return
 
 
