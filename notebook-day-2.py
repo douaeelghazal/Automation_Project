@@ -1794,7 +1794,7 @@ def _(A, B, controllability_matrix, np):
     rank_lat = np.linalg.matrix_rank(C_lat)
     print(f"Rank: {rank_lat}")
     print(f"Controllable: {rank_lat == A_lat.shape[0]}")
-    return
+    return (A_lat,)
 
 
 @app.cell(hide_code=True)
@@ -2103,6 +2103,228 @@ def _(mo):
     Explain your thought process, show your iterative guesses and simulations!
 
     Is your final closed-loop model asymptotically stable?
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Thought Process
+
+    With
+    \[
+    f = Mg
+    \]
+    fixed, the lateral subsystem has state
+    \[
+    s_{\text{lat}}
+    =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta \dot{x} \\
+    \Delta \theta \\
+    \Delta \dot{\theta}
+    \end{bmatrix}.
+    \]
+
+    The control law is
+    \[
+    \Delta \phi = -K s_{\text{lat}},
+    \]
+    with
+    \[
+    K = [\,0,\;0,\;k_3,\;k_4\,].
+    \]
+
+    Thus, the controller only feeds back \(\theta\) and \(\dot{\theta}\), so the \(\theta\)-subsystem is autonomous:
+    \[
+    J \ddot{\theta}
+    =
+    -\frac{f\ell}{2}\Delta \phi
+    =
+    Mg \cdot \frac{\ell}{2}
+    \left(
+    k_3 \Delta \theta
+    +
+    k_4 \Delta \dot{\theta}
+    \right).
+    \]
+
+    With
+    \[
+    M = g = 1,
+    \qquad
+    \ell = 2,
+    \qquad
+    J = \frac{M\ell^2}{12} = \frac{1}{3},
+    \]
+    this simplifies to
+    \[
+    \ddot{\theta}
+    =
+    3\left(
+    k_3 \Delta \theta
+    +
+    k_4 \Delta \dot{\theta}
+    \right).
+    \]
+
+    The closed-loop characteristic polynomial for \(\theta\) is therefore
+    \[
+    s^2 - 3k_4 s - 3k_3 = 0.
+    \]
+
+    For asymptotic stability of \(\theta\), we require
+    \[
+    k_3 < 0
+    \qquad \text{and} \qquad
+    k_4 < 0.
+    \]
+
+    The constraint
+    \[
+    |\Delta \phi(0)| < \frac{\pi}{2}
+    \]
+    imposes
+    \[
+    |k_3 \theta(0)|
+    =
+    k_3 \cdot \frac{\pi}{4}
+    <
+    \frac{\pi}{2}
+    \quad \Longrightarrow \quad
+    |k_3| < 2.
+    \]
+
+    We iterate guesses, simulating the linearized system each time.
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, J, M, g, l, np):
+    # Δφ column of B: [0, -g, 0, -Mgl/2J] = [0, -1, 0, -3]
+    b_lat = np.array([0.0, -g, 0.0, -M * g * l / (2 * J)], dtype=float)
+
+    def simulate_lateral(A, b_col, K, s0=None, t_span=(0, 30), dt=0.01):
+        A     = np.asarray(A,     dtype=float)
+        b_col = np.asarray(b_col, dtype=float).flatten()
+        K     = np.asarray(K,     dtype=float).flatten()
+
+        if s0 is None:
+            s0 = np.array([0.0, 0.0, 45 / 180 * np.pi, 0.0])
+
+        t   = np.arange(t_span[0], t_span[1], dt)
+        s   = np.zeros((len(t), 4))
+        phi = np.zeros(len(t))
+        s[0] = s0
+
+        for i in range(len(t) - 1):
+            dphi     = -(K @ s[i])
+            s[i + 1] = s[i] + dt * (A @ s[i] + b_col * dphi)
+            phi[i]   = dphi
+
+        phi[-1] = phi[-2]
+        return t, s, phi
+
+
+    def check(K, label):
+        t, s, phi = simulate_lateral(A_lat, b_lat, K)
+        theta = s[:, 2]
+
+        print(f"\n{label}: K = {K}")
+        print(f"  max|Δθ| = {np.max(np.abs(theta)):.3f} rad  (limit π/2 = {np.pi/2:.3f})")
+        print(f"  max|Δφ| = {np.max(np.abs(phi)):.3f} rad  (limit π/2 = {np.pi/2:.3f})")
+
+        above  = np.where(np.abs(theta) > 0.05)[0]
+        settle = t[above[-1]] if len(above) > 0 else 0.0
+        print(f"  settling time (|Δθ|<0.05) ≈ {settle:.1f} s")
+
+        ok = (
+            np.max(np.abs(theta)) < np.pi / 2 and
+            np.max(np.abs(phi))   < np.pi / 2 and
+            settle <= 20
+        )
+        return t, s, phi
+
+
+    # k3 < 0, k4 < 0  (stability), |k3| < 2  (φ constraint)
+    K1 = np.array([0.0, 0.0, -0.10, -0.30])
+    K2 = np.array([0.0, 0.0, -0.30, -0.80])
+    K3 = np.array([0.0, 0.0, -0.50, -1.20])
+    K4 = np.array([0.0, 0.0, -0.15, -0.65])
+
+    for Ki, label in [
+        (K1, "Guess 1"),
+        (K2, "Guess 2"),
+        (K3, "Guess 3"),
+        (K4, "Final")
+    ]:
+        check(Ki, label)
+    return b_lat, simulate_lateral
+
+
+@app.cell
+def _(A_lat, b_lat, np, plt, simulate_lateral):
+    K_final = np.array([0.0, 0.0, -0.15, -0.65])
+    t1, s, phi = simulate_lateral(A_lat, b_lat, K_final)
+
+    fig1, axes1 = plt.subplots(2, 1, figsize=(9, 9), sharex=True)
+
+    axes1[0].plot(t1, s[:, 2], label=r"$\Delta\theta(t)$")
+    axes1[0].axhline( np.pi/2, color="grey", ls="--", label=r"$\pm\pi/2$")
+    axes1[0].axhline(-np.pi/2, color="grey", ls="--")
+    axes1[0].axhline(0, color="black", lw=0.5)
+    axes1[0].set_ylabel("rad"); axes1[0].legend(); axes1[0].grid(True)
+    axes1[0].set_title(r"Final controller $K=[0,\,0,\,-0.15,\,-0.65]$: tilt $\Delta\theta(t)$")
+
+    axes1[1].plot(t1, phi, color="tab:orange", label=r"$\Delta\phi(t)$")
+    axes1[1].axhline( np.pi/2, color="grey", ls="--", label=r"$\pm\pi/2$")
+    axes1[1].axhline(-np.pi/2, color="grey", ls="--")
+    axes1[1].axhline(0, color="black", lw=0.5)
+    axes1[1].set_ylabel("rad"); axes1[1].set_xlabel("time $t$ (s)")
+    axes1[1].legend(); axes1[1].grid(True)
+    axes1[1].set_title(r"Control input $\Delta\phi(t)$")
+
+    plt.tight_layout()
+    plt.savefig("controller_manual.png", dpi=150)
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    \[
+    K = [0,\; 0,\; -0.15,\; -0.65]
+    \]
+
+    The two non-zero gains were found by reasoning on the decoupled $\theta$-dynamics:
+
+    $k_3 = -0.15$: proportional gain on $\Delta \theta$. Kept small so that:
+    \[
+    |\Delta \phi(0)| = |k_3| \cdot \frac{\pi}{4} \ll \frac{\pi}{2}
+    \]
+
+    $k_4 = -0.65$: derivative gain on $\Delta \dot{\theta}$. Provides damping and controls the settling speed.
+
+    The $\theta$-subsystem poles are:
+    \[
+    s = -0.2675 \quad \text{and} \quad s = -1.6825
+    \]
+
+    These poles have negative real parts, hence $\theta$ converges.
+
+    However, the full closed-loop system has two eigenvalues at $0$, corresponding to $x$ and $\dot{x}$ (which are not controlled by $K$). Therefore:
+
+    The closed-loop system is \textbf{stable but NOT asymptotically stable}:
+    - $\Delta \theta(t) \to 0$ (converges to zero within approximately $11\,\text{s}$)
+    - $\Delta x(t)$ may drift
+
+    ---
+
+    Full asymptotic stability requires the complete gain matrix $K_{pp}$ obtained via pole placement (next question).
     """)
     return
 
