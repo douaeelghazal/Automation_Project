@@ -2779,6 +2779,59 @@ def _(np):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## Optimal Control : LQR Design
+
+    We use an LQR controller with the cost function:
+
+    $$
+    J = \int_0^\infty \left( X^T Q X + u^T R u \right) dt
+    $$
+
+    We choose:
+
+    $$
+    Q =
+    \begin{bmatrix}
+    10 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 \\
+    0 & 0 & 100 & 0 \\
+    0 & 0 & 0 & 10
+    \end{bmatrix}, \qquad
+    R = [1].
+    $$
+
+    ### Justification of $Q$ and $R$
+
+    The weights were chosen as follows:
+
+    - **$Q_{11} = 10$ (weight on $\Delta x$):** A moderate penalty on lateral position. Large enough to bring $x$ to zero, but not so large that it dominates over tilt correction.
+
+    - **$Q_{22} = 1$ (weight on $\Delta \dot{x}$):** A small penalty on lateral velocity. Just enough to damp oscillations in $x$ without introducing excessive braking action.
+
+    - **$Q_{33} = 100$ (weight on $\Delta \theta$):** A heavy penalty on tilt angle. This is the most critical variable for stability — a falling booster must correct its tilt quickly. The high weight reflects that priority.
+
+    - **$Q_{44} = 10$ (weight on $\Delta \dot{\theta}$):** A moderate penalty on angular velocity. Provides sufficient damping of the tilt dynamics while still allowing the system to respond.
+
+    - **$R = 1$ (weight on $\Delta \phi$):** A unit penalty on control effort. No special emphasis placed here — we simply want a well-posed problem.
+
+    ### Note on Saturation
+
+    The large weight on $\Delta \theta$ produces large feedback gains on that state. At $t = 0$, with $\theta(0) = \pi/4$, the raw control input exceeds $\pi/2$:
+
+    $$
+    |\phi(0)| = |K_{oc,3}| \cdot \frac{\pi}{4} \gg \frac{\pi}{2}
+    $$
+
+    This is why $\phi$ gets clipped to $[-\pi/2, \pi/2]$. The saturation only occurs in the very first moments, while the tilt error is still large. Once $\theta$ drops sufficiently, the controller moves back into the unsaturated region and stays there for the rest of the trajectory.
+
+    The clipping does not ruin stability or convergence. Both $x(t) \to 0$ and $\theta(t) \to 0$ are still achieved within a reasonable time, and all constraints are respected throughout the simulation.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Validation
 
     Test the two control strategies (pole placement and optimal control) on the "true" (nonlinear) model with an animation. Check that both controllers achieve their goal; otherwise, go back to the drawing board and tweak the design parameters until they do!
@@ -2902,6 +2955,66 @@ def _(mo):
     while respecting the imposed angular constraints.
 
     Therefore, the two control strategies are validated on the nonlinear model.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Validation on the Nonlinear Model
+
+    We test both controllers — pole placement ($K_{pp}$) and optimal control ($K_{oc}$) —
+    on the full nonlinear 6-state model governed by `redstart_solve`.
+
+    ### Initial Conditions
+
+    The simulation uses:
+
+    $$
+    (x, \dot{x}, y, \dot{y}, \theta, \dot{\theta}) = (0,\ 0,\ 10,\ 0,\ \pi/4,\ 0)
+    $$
+
+    with the thrust fixed at $f = Mg$ (equilibrium thrust), and $\phi(t)$ as the
+    sole control input computed by the feedback law:
+
+    $$
+    \phi(t) = -K \cdot \begin{bmatrix} x(t) \\ \dot{x}(t) \\ \theta(t) \\ \dot{\theta}(t) \end{bmatrix}
+    $$
+
+    ### Motivation for Clipping $\phi$
+
+    The control input $\phi$ is clipped to the interval $[-\pi/2,\ \pi/2]$ at every
+    time step. This is motivated by two reasons:
+
+    1. Physical hard constraint:
+    The reactor nozzle of the booster cannot physically rotate beyond $\pm \pi/2$
+    with respect to the booster axis. This is a strict mechanical limitation of the
+    actuator — commanding $|\phi| > \pi/2$ is simply not realizable in practice.
+
+    2. Validity of the linearized model:
+    Both controllers $K_{pp}$ and $K_{oc}$ were designed based on the linearized
+    dynamics, which rely on the small-angle approximations:
+
+    $$
+    \sin(\theta + \phi) \approx \theta + \phi, \qquad \sin(\phi) \approx \phi.
+    $$
+
+    These approximations are only valid when $|\phi|$ is small. If $|\phi|$ were
+    allowed to exceed $\pi/2$, the linearization would no longer be a valid
+    representation of the true nonlinear dynamics, and the controllers — which
+    were designed under this assumption — could behave in an unpredictable or
+    unstable manner on the real system.
+
+    Therefore, clipping $\phi$ is not merely a numerical safeguard or an arbitrary
+    choice: it reflects a real physical limitation that must be enforced in any
+    realistic simulation or hardware implementation of the controller.
+
+    ---
+    Note that the thrust is fixed at $f = Mg$ throughout, which exactly
+    cancels gravity and keeps the vertical position $y(t)$ roughly constant.
+    This validation therefore focuses exclusively on the lateral stabilization
+    ($x$ and $\theta$), not on a full landing scenario.
     """)
     return
 
