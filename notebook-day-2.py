@@ -2619,7 +2619,7 @@ def _(np, plt):
     plt.tight_layout()
 
     plt.show()
-    return
+    return (Kpp,)
 
 
 @app.cell(hide_code=True)
@@ -2637,10 +2637,348 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    For optimal control, we use an LQR controller:
+    \[
+    \Delta \phi = -K_{oc} X
+    \]
+    with the reduced lateral dynamics
+    \[
+    \dot{X} = AX + B\Delta\phi
+    \]
+    where
+    \[
+    A =
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 \\
+    0 & 0 & -1 & 0 \\
+    0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0
+    \end{bmatrix}, \qquad
+    B =
+    \begin{bmatrix}
+    0 \\
+    -1 \\
+    0 \\
+    -3
+    \end{bmatrix}.
+    \]
+
+    We minimize the quadratic cost function
+    \[
+    J = \int_0^\infty \left( X^T Q X + u^T R u \right) dt
+    \]
+    where:
+    \begin{itemize}
+        \item \(Q\) penalizes the state errors,
+        \item \(R\) penalizes the control effort.
+    \end{itemize}
+
+    To satisfy the same requirements as pole placement (stability, fast convergence, and \(\Delta x(t) \to 0\)), we choose
+    \[
+    Q =
+    \begin{bmatrix}
+    10 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 \\
+    0 & 0 & 100 & 0 \\
+    0 & 0 & 0 & 10
+    \end{bmatrix}, \qquad
+    R = [1].
+    \]
+
+    The choice of \(Q\) and \(R\) is made as follows:
+    \begin{itemize}
+        \item a large weight on \(\Delta \theta\) ensures rapid correction of the tilt angle,
+        \item a moderate weight on \(\Delta x\) removes lateral drift,
+        \item the value of \(R\) limits excessive control effort.
+    \end{itemize}
+
+    The optimal gain matrix is obtained from the solution of the Riccati equation:
+    \[
+    K_{oc} = R^{-1} B^T P.
+    \]
+
+    Using the LQR method gives
+    \[
+    \boxed{
+    K_{oc} =
+    \begin{bmatrix}
+    -3.1623 & -5.8852 & -35.4242 & -7.3737
+    \end{bmatrix}
+    }.
+    \]
+
+    The closed-loop matrix is
+    \[
+    A_{cl} = A - B K_{oc},
+    \]
+    whose eigenvalues all have negative real parts. Therefore, the system is asymptotically stable and satisfies
+    \[
+    \Delta x(t) \to 0, \qquad \Delta \theta(t) \to 0
+    \]
+    in less than \(20\) seconds.
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    from scipy.linalg import solve_continuous_are
+
+
+    # SYSTEM MATRICES
+
+
+    A3 = np.array([
+        [0, 1,  0, 0],
+        [0, 0, -1, 0],
+        [0, 0,  0, 1],
+        [0, 0,  0, 0]
+    ])
+
+    B3 = np.array([
+        [0],
+        [-1],
+        [0],
+        [-3]
+    ])
+
+
+    # LQR WEIGHTS
+
+
+    Q = np.diag([10, 1, 100, 10])
+
+    R = np.array([[1]])
+
+
+    # RICCATI EQUATION
+
+
+    P = solve_continuous_are(A3, B3, Q, R)
+
+
+    # OPTIMAL GAIN
+
+
+    Koc = np.linalg.inv(R) @ B3.T @ P
+
+    print("Koc =")
+    print(Koc)
+
+
+    # CLOSED-LOOP EIGENVALUES
+
+
+    Acl1 = A3 - B3 @ Koc
+
+    print("\nClosed-loop poles:")
+    print(np.linalg.eigvals(Acl1))
+    return (Koc,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Validation
 
     Test the two control strategies (pole placement and optimal control) on the "true" (nonlinear) model with an animation. Check that both controllers achieve their goal; otherwise, go back to the drawing board and tweak the design parameters until they do!
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The two previously designed controllers:
+
+    \[
+    K_{pp}
+    \]
+
+    obtained using pole placement, and
+
+    \[
+    K_{oc}
+    \]
+
+    obtained using optimal control (LQR), are now validated on the full nonlinear model.
+
+    The objective is to verify that both controllers:
+
+    \begin{itemize}
+        \item stabilize the nonlinear system,
+        \item maintain:
+        \[
+        |\theta(t)| < \frac{\pi}{2}
+        \]
+        and
+        \[
+        |\phi(t)| < \frac{\pi}{2}
+        \]
+        at all times,
+        \item ensure:
+        \[
+        x(t)\to0
+        \]
+        and
+        \[
+        \theta(t)\to0
+        \]
+        in approximately \(20\) seconds.
+    \end{itemize}
+
+
+
+    ## Nonlinear dynamics
+
+    The nonlinear equations are:
+
+    \[
+    \ddot{x} = -\sin(\theta+\phi)
+    \]
+
+    \[
+    \ddot{\theta} = -3\sin(\phi)
+    \]
+
+    The control law is applied directly to the nonlinear system:
+
+    \[
+    \phi(t) = -KX(t)
+    \]
+
+    where \(K\) can be either:
+
+    \[
+    K_{pp}
+    \]
+
+    or
+
+    \[
+    K_{oc}
+    \]
+
+    depending on the controller being tested.
+
+
+
+    ## Initial conditions
+
+    The simulations are performed using:
+
+    \[
+    x(0)=0,
+    \qquad
+    \dot{x}(0)=0
+    \]
+
+    \[
+    \theta(0)=\frac{\pi}{4},
+    \qquad
+    \dot{\theta}(0)=0
+    \]
+
+
+
+    ## Validation results
+
+    The simulations show that both controllers successfully stabilize the nonlinear dynamics.
+
+    The pole placement controller provides stable convergence with dynamics imposed by the selected poles, while the LQR controller produces smoother trajectories and generally requires less control effort.
+
+    In both cases:
+
+    \[
+    x(t)\to0
+    \]
+
+    and
+
+    \[
+    \theta(t)\to0
+    \]
+
+    while respecting the imposed angular constraints.
+
+    Therefore, the two control strategies are validated on the nonlinear model.
+    """)
+    return
+
+
+@app.cell
+def _(Koc, Kpp, M, g, np, plt, redstart_solve):
+    def make_f_phi(K):
+   
+        K_flat = np.asarray(K).flatten()
+        def f_phi(t, state):
+            x, vx, y, vy, theta, omega = state
+            X_lat = np.array([x, vx, theta, omega])
+            phi = float(-(K_flat @ X_lat))
+            phi = np.clip(phi, -np.pi / 2, np.pi / 2)
+            return np.array([M * g, phi])
+        return f_phi
+
+    # INITIAL CONDITIONS (full 6-state)
+    t_span_val = [0.0, 30.0]
+    y0_full = [0.0, 0.0, 10.0, 0.0, np.pi / 4, 0.0]
+    time_val = np.linspace(t_span_val[0], t_span_val[1], 3000)
+
+    # SIMULATION
+    sol_pp  = redstart_solve(t_span_val, y0_full, make_f_phi(Kpp))
+    sol_lqr = redstart_solve(t_span_val, y0_full, make_f_phi(Koc))
+
+    # EXTRACT STATES
+    x_pp      = sol_pp(time_val)[0]
+    theta_pp  = sol_pp(time_val)[4]
+    x_lqr     = sol_lqr(time_val)[0]
+    theta_lqr = sol_lqr(time_val)[4]
+
+    # CONTROL INPUTS
+    Kpp_flat = np.asarray(Kpp).flatten()
+    Koc_flat = np.asarray(Koc).flatten()
+
+    phi_pp = np.array([
+        np.clip(float(-(Kpp_flat @ sol_pp(t)[[0,1,4,5]])), -np.pi/2, np.pi/2)
+        for t in time_val
+    ])
+    phi_lqr = np.array([
+        np.clip(float(-(Koc_flat @ sol_lqr(t)[[0,1,4,5]])), -np.pi/2, np.pi/2)
+        for t in time_val
+    ])
+
+    # PLOTS
+    fig_val, axes_val = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
+
+    axes_val[0].plot(time_val, x_pp,  label='Pole Placement')
+    axes_val[0].plot(time_val, x_lqr, label='LQR')
+    axes_val[0].axhline(0, color='black', lw=0.5)
+    axes_val[0].set_ylabel(r'$x(t)$ (m)')
+    axes_val[0].set_title('Validation on full nonlinear model')
+    axes_val[0].legend()
+    axes_val[0].grid(True)
+
+    axes_val[1].plot(time_val, theta_pp,  label='Pole Placement')
+    axes_val[1].plot(time_val, theta_lqr, label='LQR')
+    axes_val[1].axhline( np.pi/2, color='red', ls='--', label=r'$\pm\pi/2$')
+    axes_val[1].axhline(-np.pi/2, color='red', ls='--')
+    axes_val[1].axhline(0, color='black', lw=0.5)
+    axes_val[1].set_ylabel(r'$\theta(t)$ (rad)')
+    axes_val[1].legend()
+    axes_val[1].grid(True)
+
+    axes_val[2].plot(time_val, phi_pp,  label='Pole Placement')
+    axes_val[2].plot(time_val, phi_lqr, label='LQR')
+    axes_val[2].axhline( np.pi/2, color='red', ls='--', label=r'$\pm\pi/2$')
+    axes_val[2].axhline(-np.pi/2, color='red', ls='--')
+    axes_val[2].axhline(0, color='black', lw=0.5)
+    axes_val[2].set_ylabel(r'$\phi(t)$ (rad)')
+    axes_val[2].set_xlabel('Time (s)')
+    axes_val[2].legend()
+    axes_val[2].grid(True)
+
+    plt.tight_layout()
+    plt.show()
     return
 
 
