@@ -1311,6 +1311,99 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    The state vector:
+
+    \[
+    X=
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta\dot{x} \\
+    \Delta y \\
+    \Delta\dot{y} \\
+    \Delta\theta \\
+    \Delta\dot{\theta}
+    \end{bmatrix}
+    \]
+
+    and the input vector:
+
+    \[
+    U=
+    \begin{bmatrix}
+    \Delta f \\
+    \Delta\phi
+    \end{bmatrix}
+    \]
+
+    The system can be written in standard state-space form:
+
+    \[
+    \dot{X}=AX+BU
+    \]
+
+    with:
+
+    \[
+    A=
+    \begin{bmatrix}
+    0&1&0&0&0&0\\
+    0&0&0&0&-g&0\\
+    0&0&0&1&0&0\\
+    0&0&0&0&0&0\\
+    0&0&0&0&0&1\\
+    0&0&0&0&0&0
+    \end{bmatrix}
+    \]
+
+    and:
+
+    \[
+    B=
+    \begin{bmatrix}
+    0&0\\
+    0&-g\\
+    0&0\\
+    1/M&0\\
+    0&0\\
+    0&-6g/\ell
+    \end{bmatrix}
+    \]
+    """)
+    return
+
+
+@app.cell
+def _(J, M, g, l, np):
+    def AB_matrices(M, g, l, J):
+        A = np.array([
+            [0, 1,   0, 0,  0,           0],
+            [0, 0,   0, 0,  -g,          0],
+            [0, 0,   0, 1,  0,           0],
+            [0, 0,   0, 0,  0,           0],
+            [0, 0,   0, 0,  0,           1],
+            [0, 0,   0, 0,  0,           0],
+        ], dtype=float)
+
+        B = np.array([
+            [0,      0          ],
+            [0,      -g         ],
+            [0,      0          ],
+            [1/M,    0          ],
+            [0,      0          ],
+            [0,      -M*g*l/(2*J)],
+        ], dtype=float)
+
+        return A, B
+
+    A, B = AB_matrices(M, g, l, J)
+    print("A =\n", A)
+    print("B =\n", B)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Stability
 
     Is the generic equilibrium asymptotically stable?
