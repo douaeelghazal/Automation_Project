@@ -1634,7 +1634,8 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The reduced state vector is defined by selecting only the lateral motion variables:
+    We restrict the study to the lateral motion variables:
+
     \[
     X=
     \begin{bmatrix}
@@ -1645,31 +1646,43 @@ def _(mo):
     \end{bmatrix}
     \]
 
-    The control input is chosen as the angular deflection of the thrust direction:
+    The thrust magnitude is fixed to
 
     \[
-    u=\Delta\phi
+    f = Mg
     \]
 
-    Under the assumption of small angles and by fixing the thrust magnitude to \(f = Mg\), the nonlinear model can be linearized around the equilibrium point. The resulting reduced-order dynamics describe the coupling between the lateral translation and the rotational motion of the system:
+    and the only control input is
+
+    \[
+    u=\phi
+    \]
+
+    Using the small-angle approximation:
+
+    \[
+    \sin(\theta+\phi)\approx \theta+\phi
+    \]
+
+    the lateral dynamics become
 
     \[
     \ddot{x}=-(\theta+\phi)
     \]
 
+    and the rotational dynamics are
+
     \[
     \ddot{\theta}=-3\phi
     \]
 
-    These equations show that the lateral acceleration is influenced both by the tilt angle \(\theta\) and the control input \(\phi\), while the rotational dynamics are directly driven by the control input.
-
-    The system can then be written in the standard state-space form:
+    The reduced system can therefore be written in state-space form:
 
     \[
     \dot{X}=AX+Bu
     \]
 
-    where the matrices \(A\) and \(B\) are given by:
+    with
 
     \[
     A=
@@ -1681,6 +1694,8 @@ def _(mo):
     \end{bmatrix}
     \]
 
+    and
+
     \[
     B=
     \begin{bmatrix}
@@ -1691,7 +1706,76 @@ def _(mo):
     \end{bmatrix}
     \]
 
-    This representation highlights that the system is of fourth order and that the input \(u=\phi\) acts simultaneously on both the translational and rotational dynamics, which is essential for the controllability analysis.
+
+
+    The controllability matrix is defined by
+
+    \[
+    \mathcal{C}
+    =
+    \begin{bmatrix}
+    B & AB & A^2B & A^3B
+    \end{bmatrix}
+    \]
+
+    First, we compute:
+
+    \[
+    AB=
+    \begin{bmatrix}
+    -1\\
+    0\\
+    -3\\
+    0
+    \end{bmatrix}
+    \]
+
+    \[
+    A^2B=
+    \begin{bmatrix}
+    0\\
+    3\\
+    0\\
+    0
+    \end{bmatrix}
+    \]
+
+    \[
+    A^3B=
+    \begin{bmatrix}
+    3\\
+    0\\
+    0\\
+    0
+    \end{bmatrix}
+    \]
+
+    Thus,
+
+    \[
+    \mathcal{C}
+    =
+    \begin{bmatrix}
+    0 & -1 & 0 & 3\\
+    -1 & 0 & 3 & 0\\
+    0 & -3 & 0 & 0\\
+    -3 & 0 & 0 & 0
+    \end{bmatrix}
+    \]
+
+    The rank of the controllability matrix is
+
+    \[
+    \mathrm{rank}(\mathcal{C})=4
+    \]
+
+    Since the rank equals the dimension of the state vector, the reduced system is fully controllable.
+
+    Therefore, the single control input \(\phi\) is sufficient to control:
+
+    \[
+    x,\quad \dot{x},\quad \theta,\quad \dot{\theta}
+    \]
     """)
     return
 
