@@ -2552,6 +2552,83 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## Setup: What we know from previous parts
+
+    From the prior derivations, the fourth derivative of the output is:
+
+    $$
+    h^{(4)} = P(\theta, \dot\theta, z, \dot z)\, v + q(\theta, \dot\theta, z, \dot z)
+    $$
+
+    where $P$ is a $2 \times 2$ matrix (the decoupling matrix) and $q$ is a vector of lower-order terms.
+
+    Concretely:
+
+    $$
+    h^{(4)} = \begin{bmatrix} \cos\theta & -\frac{M\ell}{6z}\sin\theta \\ \sin\theta & \frac{M\ell}{6z}\cos\theta \end{bmatrix} \begin{bmatrix} \dot{v}_1 \\ v_2 \end{bmatrix} + q(\theta, \dot\theta, z, \dot z)
+    $$
+    ## The New Auxiliary System
+
+    Introduce $u = (u_1, u_2)$ and define $v$ via:
+
+    $$
+    v = P(\theta, z)^{-1}\bigl(u - q(\theta, \dot\theta, z, \dot z)\bigr)
+    $$
+
+    This is well-defined as long as $\det P \neq 0$.
+
+    Compute $\det P$:
+
+    $$
+    \det P = \cos\theta \cdot \frac{M\ell}{6z}\cos\theta + \sin\theta \cdot \frac{M\ell}{6z}\sin\theta = \frac{M\ell}{6z} \neq 0 \quad \text{(since } z \neq 0\text{)}
+    $$
+
+    So $P$ is always invertible when $z \neq 0$, and explicitly:
+
+    $$
+    P^{-1} = \frac{6z}{M\ell}\begin{bmatrix}
+    \frac{M\ell}{6z}\cos\theta & \frac{M\ell}{6z}\sin\theta \\
+    \sin\theta & -\cos\theta
+    \end{bmatrix} = \begin{bmatrix}
+    \cos\theta & \sin\theta \\
+    \frac{6z}{M\ell}\sin\theta & -\frac{6z}{M\ell}\cos\theta
+    \end{bmatrix}
+    $$
+
+    ## Result
+
+    Substituting back:
+
+    $$
+    h^{(4)} = P \cdot v + q = P \cdot P^{-1}(u - q) + q = u
+    $$
+
+    $$
+    \boxed{h^{(4)} = u}
+    $$
+
+    ## The Overall Control Chain
+
+    $$
+    u \longrightarrow \underbrace{v = P^{-1}(u - q)}_{\text{new auxiliary}} \longrightarrow \underbrace{(f_x, f_y) = R(\theta-\pi/2)(\cdots)}_{\text{first auxiliary}} \longrightarrow \underbrace{\text{booster ODE}}_{\dot s = F(s,f,\phi)} \longrightarrow h
+    $$
+
+    ## Key Insight
+
+    The full system from $u$ to $h$ is now a **double integrator in each channel** (order 4), i.e., two decoupled chains:
+
+    $$
+    h_x^{(4)} = u_1, \quad h_y^{(4)} = u_2
+    $$
+
+    This is **exactly linear** and trivially controllable. Any linear controller (pole placement, LQR, PID) on this flat output suffices.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 State to Derivatives of the Output
 
     Implement a function `Tr` of `x, dx, y, dy, theta, dtheta, z, dz` that returns `h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y`.
