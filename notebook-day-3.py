@@ -2690,13 +2690,8 @@ def _(mo):
     From the previous derivation:
     \[
     h^{(4)} =
-    \underbrace{
     \frac{1}{M}
-    \begin{bmatrix}
-    \sin\theta & \cos\theta \\
-    -\cos\theta & \sin\theta
-    \end{bmatrix}
-    }_{=: \frac{1}{M}P(\theta)}
+    R\!\left(\theta - \frac{\pi}{2}\right)
     \begin{bmatrix}
     v_1 \\
     v_2
@@ -2705,18 +2700,29 @@ def _(mo):
     b(\theta, \dot\theta, z, \dot z)
     \]
 
-    where \( b \) contains all drift terms independent of \( v \).
+    where \( b \) contains all drift terms independent of \( v \), and:
+    \[
+    R\!\left(\theta - \frac{\pi}{2}\right)
+    =
+    \begin{bmatrix}
+    \sin\theta & \cos\theta \\
+    -\cos\theta & \sin\theta
+    \end{bmatrix}
+    \]
 
     ---
 
-    ## Invertibility of \( P(\theta) \)
+    ## Invertibility of \( R\!\left(\theta - \frac{\pi}{2}\right) \)
 
+    Since \( R(\alpha) \) is a rotation matrix for any \( \alpha \):
     \[
-    \det P(\theta) = \sin^2\theta + \cos^2\theta = 1 \quad \forall\, \theta
+    \det R\!\left(\theta - \frac{\pi}{2}\right) = 1 \quad \forall\, \theta
     \]
 
     \[
-    P(\theta)^{-1} =
+    R\!\left(\theta - \frac{\pi}{2}\right)^{-1}
+    = R\!\left(-\theta + \frac{\pi}{2}\right)
+    =
     \begin{bmatrix}
     \sin\theta & -\cos\theta \\
     \cos\theta & \sin\theta
@@ -2730,7 +2736,7 @@ def _(mo):
     Choose:
     \[
     \boxed{
-    v = M\,P(\theta)^{-1}\bigl(u - b(\theta,\dot\theta,z,\dot z)\bigr)
+    v = M\,R\!\left(\theta - \frac{\pi}{2}\right)^{-1}\bigl(u - b(\theta,\dot\theta,z,\dot z)\bigr)
     }
     \]
 
@@ -2739,10 +2745,9 @@ def _(mo):
     ## Closed-Loop Substitution
 
     Substituting into the dynamics:
-
     \[
     h^{(4)} =
-    \frac{1}{M}P(\theta)\cdot M P(\theta)^{-1}(u - b) + b
+    \frac{1}{M}R\!\left(\theta - \frac{\pi}{2}\right)\cdot M\, R\!\left(\theta - \frac{\pi}{2}\right)^{-1}(u - b) + b
     = u
     \]
     """)
@@ -3111,6 +3116,24 @@ def _(M, g, l, np):
         return x, dx, y, dy, theta, dtheta, z, dz
 
     return (T_inv,)
+
+
+@app.cell
+def _(T_inv, Tr):
+
+
+    # Test 1: Tr
+    print("=== Tr(1.0, 2.0, 3.0, 4.0, 0.1, 0.2, -0.3, -0.4) ===")
+    result_tr = Tr(1.0, 2.0, 3.0, 4.0, 0.1, 0.2, -0.3, -0.4)
+    for i, v in enumerate(result_tr):
+        print(f"{i}: {v}")
+
+    # Test 2: T_inv(*Tr(...)) should give back original values
+    print("\n=== T_inv(*Tr(1.0, 2.0, 3.0, 4.0, 0.1, 0.2, -0.3, -0.4)) ===")
+    result_inv = T_inv(*result_tr)
+    for i, v in enumerate(result_inv):
+        print(f"{i}: {v}")
+    return
 
 
 @app.cell(hide_code=True)
