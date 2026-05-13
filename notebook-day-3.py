@@ -2883,7 +2883,7 @@ def _(M, g, l, np):
 
         return h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y
 
-    return
+    return (Tr,)
 
 
 @app.cell(hide_code=True)
@@ -3110,7 +3110,7 @@ def _(M, g, l, np):
 
         return x, dx, y, dy, theta, dtheta, z, dz
 
-    return
+    return (T_inv,)
 
 
 @app.cell(hide_code=True)
@@ -3146,6 +3146,202 @@ def _(mo):
 
     that returns a function `fun` such that `fun(t)` is a value of `x, dx, y, dy, theta, dtheta, z, dz, f, phi` at time `t` that match the initial and final values provided as arguments to `compute`.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Strategy
+
+    We use the exact linearization framework.
+
+    In the coordinates:
+    \[
+    (h, \dot h, \ddot h, h^{(3)})
+    \]
+
+    the system reduces to two decoupled fourth-order integrators:
+    \[
+    h^{(4)} = u
+    \]
+
+    ---
+
+    ## Trajectory Planning
+
+    We design trajectories for:
+    \[
+    h_x(t), \quad h_y(t)
+    \]
+
+    Each is chosen as a degree-7 polynomial to satisfy boundary conditions on a 4th-order system.
+
+    ---
+
+    ## Boundary Conditions
+
+    For each component \( h_x(t) \) and \( h_y(t) \), we enforce:
+
+    - value at \( t = 0 \)
+    - first derivative at \( t = 0 \)
+    - second derivative at \( t = 0 \)
+    - third derivative at \( t = 0 \)
+
+    and similarly at \( t = t_f \):
+
+    - value at \( t = t_f \)
+    - first derivative at \( t = t_f \)
+    - second derivative at \( t = t_f \)
+    - third derivative at \( t = t_f \)
+
+    ---
+
+    ## Resulting Control Structure
+
+    This ensures smooth trajectories consistent with the fourth-order dynamics:
+    \[
+    h^{(4)} = u
+    \]
+
+    ---
+
+    ## Reconstruction Step
+
+    Once \( h(t) \), \( \dot h(t) \), \( \ddot h(t) \), and \( h^{(3)}(t) \) are generated, we recover the physical state via the inverse mapping \( T_{\text{inv}} \):
+
+    \[
+    (h, \dot h, \ddot h, h^{(3)}) \;\rightarrow\; (x, \dot x, y, \dot y, \theta, \dot\theta, z, \dot z)
+    \]
+
+    ---
+
+    ## Input Recovery
+
+    Finally, the physical inputs \( f \) and \( \phi \) are computed from:
+
+    \[
+    z, \quad \theta
+    \]
+
+    using the previously derived control relationships.
+
+    ---
+
+    ## Summary
+
+    - Exact feedback linearization gives:
+      \[
+      h^{(4)} = u
+      \]
+    - Each output component is planned independently using a 7th-degree polynomial.
+    - Full nonlinear state and inputs are recovered through \( T_{\text{inv}} \) and the input map.
+    """)
+    return
+
+
+@app.cell
+def _(T_inv, Tr, np):
+    def _poly7_coeffs(p0, dp0, d2p0, d3p0, pf, dpf, d2pf, d3pf, T):
+    
+        A = np.array([
+            # t = 0
+            [1, 0,   0,     0,      0,       0,        0,        0       ],
+            [0, 1,   0,     0,      0,       0,        0,        0       ],
+            [0, 0,   2,     0,      0,       0,        0,        0       ],
+            [0, 0,   0,     6,      0,       0,        0,        0       ],
+            # t = T
+            [1, T,   T**2,  T**3,   T**4,    T**5,     T**6,     T**7    ],
+            [0, 1,   2*T,   3*T**2, 4*T**3,  5*T**4,   6*T**5,   7*T**6  ],
+            [0, 0,   2,     6*T,    12*T**2, 20*T**3,  30*T**4,  42*T**5 ],
+            [0, 0,   0,     6,      24*T,    60*T**2,  120*T**3, 210*T**4],
+        ], dtype=float)
+        b = np.array([p0, dp0, d2p0, d3p0, pf, dpf, d2pf, d3pf], dtype=float)
+        return np.linalg.solve(A, b)
+
+
+    def _eval(c, t):
+    
+        p   = sum(c[k]          * t**k           for k in range(8))
+        dp  = sum(k*c[k]        * t**(k-1)       for k in range(1, 8))
+        d2p = sum(k*(k-1)*c[k]  * t**(k-2)       for k in range(2, 8))
+        d3p = sum(k*(k-1)*(k-2)*c[k] * t**(k-3) for k in range(3, 8))
+        return p, dp, d2p, d3p
+
+
+    # ── THE FUNCTION ──────────────────────────────────────────────────────────────
+
+    def compute(
+        x_0, dx_0, y_0, dy_0, theta_0, dtheta_0, z_0, dz_0,
+        x_tf, dx_tf, y_tf, dy_tf, theta_tf, dtheta_tf, z_tf, dz_tf,
+        tf,
+    ):
+        # 1. convert boundary physical states → output-space boundary conditions
+        h_x0, h_y0, dh_x0, dh_y0, d2h_x0, d2h_y0, d3h_x0, d3h_y0 = \
+            Tr(x_0,  dx_0,  y_0,  dy_0,  theta_0,  dtheta_0,  z_0,  dz_0)
+
+        h_xf, h_yf, dh_xf, dh_yf, d2h_xf, d2h_yf, d3h_xf, d3h_yf = \
+            Tr(x_tf, dx_tf, y_tf, dy_tf, theta_tf, dtheta_tf, z_tf, dz_tf)
+
+        # 2. fit one degree-7 polynomial per output channel
+        cx = _poly7_coeffs(h_x0, dh_x0, d2h_x0, d3h_x0,
+                           h_xf, dh_xf, d2h_xf, d3h_xf, tf)
+        cy = _poly7_coeffs(h_y0, dh_y0, d2h_y0, d3h_y0,
+                           h_yf, dh_yf, d2h_yf, d3h_yf, tf)
+
+        # 3. build the trajectory function
+        def fun(t):
+            scalar = np.ndim(t) == 0
+            ts = np.atleast_1d(np.asarray(t, dtype=float))
+            rows = []
+
+            for ti in ts:
+                hx,  dhx,  d2hx, d3hx = _eval(cx, ti)
+                hy,  dhy,  d2hy, d3hy = _eval(cy, ti)
+
+                # recover full state
+                x, dx, y, dy, theta, dtheta, z, dz = \
+                    T_inv(hx, hy, dhx, dhy, d2hx, d2hy, d3hx, d3hy)
+
+                # recover f and phi from the force expressed in Cartesian coords:
+                #   (fx, fy) = z*(sin θ, -cos θ)   [from ddot_h formula, times M]
+                # and the reactor model:
+                #   fx = -f sin(θ+φ),  fy = f cos(θ+φ)
+                fx =  z * np.sin(theta)
+                fy = -z * np.cos(theta)
+                f_val   = np.sqrt(fx**2 + fy**2)          # = |z|
+                phi_val = np.arctan2(-fx, fy) - theta      # θ+φ = atan2(-fx, fy)
+
+                rows.append([x, dx, y, dy, theta, dtheta, z, dz, f_val, phi_val])
+
+            out = np.array(rows).T    # shape (10, N)
+            return out[:, 0] if scalar else out
+
+        return fun
+
+    return (compute,)
+
+
+@app.cell
+def _(M, compute, g, l, np, plt):
+    fun = compute(
+        5.0,  0.0,  20.0, -1.0, -np.pi/8, 0.0, -M*g, 0.0,   # initial
+        0.0,  0.0,   2/3*l, 0.0,  0.0,    0.0, -M*g, 0.0,   # final
+        10.0,
+    )
+
+    t = np.linspace(0, 10, 500)
+    traj = fun(t)   # shape (10, 500)
+    labels = ["x", "dx", "y", "dy", "theta", "dtheta", "z", "dz", "f", "phi"]
+
+    fig1, axes = plt.subplots(5, 2, figsize=(12, 14), sharex=True)
+    for ax1, row, lbl1 in zip(axes.flat, traj, labels):
+        ax1.plot(t, row)
+        ax1.set_ylabel(lbl1)
+        ax1.grid(True)
+    axes.flat[-1].set_xlabel("time t")
+    plt.tight_layout()
+    plt.show()
     return
 
 
