@@ -2639,6 +2639,116 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## The Output
+
+    $$
+    h = \begin{bmatrix} x - \frac{\ell}{6}\sin\theta \\ y + \frac{\ell}{6}\cos\theta \end{bmatrix}
+    $$
+
+    ## Auxiliary System Dynamics
+
+    The auxiliary system gives $\ddot{z} = v_1$, and the reactor force in Cartesian coordinates comes from:
+
+    $$
+    \begin{bmatrix} f_x \\ f_y \end{bmatrix} = R\!\left(\theta - \frac{\pi}{2}\right)\begin{bmatrix} z - \frac{M\ell\dot\theta^2}{6} \\ \frac{M\ell v_2}{6z} \end{bmatrix}
+    $$
+
+    where
+
+    $$
+    R(\alpha) = \begin{bmatrix}\cos\alpha & -\sin\alpha \\ \sin\alpha & -\cos\alpha\end{bmatrix}
+    $$
+
+    ### Computing $R(\theta - \pi/2)$ explicitly
+
+    Since $\cos(\theta-\pi/2) = \sin\theta$ and $\sin(\theta-\pi/2) = -\cos\theta$:
+
+    $$
+    R(\theta-\pi/2) = \begin{bmatrix}
+    \sin\theta & -\cos\theta \\
+    -\cos\theta & -\sin\theta
+    \end{bmatrix}
+    $$
+
+    ## Derivatives of $h$
+
+    ### $h$ (0th order)
+
+    $$
+    h_x = x - \frac{\ell}{6}\sin\theta, \qquad h_y = y + \frac{\ell}{6}\cos\theta
+    $$
+
+    ### $\dot{h}$ (1st order)
+
+    $$
+    \dot{h}_x = \dot{x} - \frac{\ell}{6}\dot\theta\cos\theta, \qquad \dot{h}_y = \dot{y} - \frac{\ell}{6}\dot\theta\sin\theta
+    $$
+
+    ### $\ddot{h}$ (2nd order)
+
+    From the equations of motion $M\ddot{x} = f_x$, $M\ddot{y} = f_y - Mg$:
+
+    $$
+    \ddot{h}_x = \ddot{x} - \frac{\ell}{6}(\ddot\theta\cos\theta - \dot\theta^2\sin\theta) = \frac{f_x}{M} - \frac{\ell}{6}\ddot\theta\cos\theta + \frac{\ell}{6}\dot\theta^2\sin\theta
+    $$
+
+    Using $J\ddot\theta = -f\frac{\ell}{2}\sin\phi$ and the relationship through the auxiliary system, after substitution (shown in the previous sub-question), one gets:
+
+    $$
+    \ddot{h} = \frac{z}{M}\begin{bmatrix}\sin\theta \\ -\cos\theta\end{bmatrix}
+    $$
+
+    ### $h^{(3)}$ (3rd order)
+
+    Differentiating $\ddot{h}$:
+
+    $$
+    h^{(3)}_x = \frac{1}{M}(\dot{z}\sin\theta + z\dot\theta\cos\theta)
+    $$
+
+    $$
+    h^{(3)}_y = \frac{1}{M}(-\dot{z}\cos\theta + z\dot\theta\sin\theta)
+    $$
+
+    Or in vector form:
+
+    $$
+    h^{(3)} = \frac{1}{M}\begin{bmatrix}
+    \dot{z}\sin\theta + z\dot\theta\cos\theta \\
+    -\dot{z}\cos\theta + z\dot\theta\sin\theta
+    \end{bmatrix}
+    $$
+    """)
+    return
+
+
+@app.cell
+def _(M, l, np):
+    def Tr(x, dx, y, dy, theta, dtheta, z, dz):
+        # h
+        h_x  = x - (l/6) * np.sin(theta)
+        h_y  = y + (l/6) * np.cos(theta)
+
+        # dh
+        dh_x = dx - (l/6) * dtheta * np.cos(theta)
+        dh_y = dy - (l/6) * dtheta * np.sin(theta)
+
+        # d2h  (auxiliary system plugged in: z encodes the normal force component)
+        d2h_x = (z / M) * np.sin(theta)
+        d2h_y = (z / M) * (-np.cos(theta))   # −g cancels out by construction of z
+
+        # d3h
+        d3h_x = (dz * np.sin(theta) + z * dtheta * np.cos(theta)) / M
+        d3h_y = (-dz * np.cos(theta) + z * dtheta * np.sin(theta)) / M
+
+        return h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y
+
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Inversion
 
 
