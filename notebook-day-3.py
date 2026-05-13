@@ -2440,97 +2440,228 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Third and Fourth Derivatives of $h$
+    ## From \( \ddot{h} \) to \( h^{(3)} \)
 
-    ## Setup Recap
+    Starting from:
+    \[
+    \ddot{h}
+    = \frac{z}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    -
+    \begin{bmatrix}
+    0 \\
+    g
+    \end{bmatrix}
+    \]
 
-    From the previous results (derivatives 1 and 2):
+    Differentiate term by term (gravity term vanishes):
 
-    $$
-    h = \begin{bmatrix} x - \frac{\ell}{6}\sin\theta \\ y + \frac{\ell}{6}\cos\theta \end{bmatrix}
-    $$
+    \[
+    h^{(3)} = \frac{d}{dt}\left(\frac{z}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}\right)
+    \]
 
-    $$
-    \dot{h} = \begin{bmatrix} \dot{x} - \frac{\ell}{6}\dot{\theta}\cos\theta \\ \dot{y} - \frac{\ell}{6}\dot{\theta}\sin\theta \end{bmatrix}
-    $$
+    Apply product rule:
 
-    After plugging in the auxiliary system, $\ddot{h}$ simplifies to:
+    \[
+    h^{(3)} =
+    \frac{\dot{z}}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    +
+    \frac{z}{M}\frac{d}{dt}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    \]
 
-    $$
-    \ddot{h} = \frac{1}{M}\begin{bmatrix} f_x \\ f_y - Mg \end{bmatrix}
-    $$
+    Time derivative of the direction vector:
 
-    With the auxiliary output:
+    \[
+    \frac{d}{dt}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    =
+    \dot{\theta}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    \]
 
-    $$
-    \begin{bmatrix} f_x \\ f_y \end{bmatrix} = R\!\left(\theta - \frac{\pi}{2}\right)\begin{bmatrix} z - \frac{M\ell\dot{\theta}^2}{6} \\ \frac{M\ell v_2}{6z} \end{bmatrix}
-    $$
+    Thus:
 
-    where
+    \[
+    \boxed{
+    h^{(3)} =
+    \frac{\dot{z}}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    +
+    \frac{z\dot{\theta}}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    }
+    \]
 
-    $$
-    R(\theta - \pi/2) = \begin{bmatrix} \sin\theta & -\cos\theta \\ -\cos\theta & -\sin\theta \end{bmatrix}
-    $$
+    ---
 
-    (since $\cos(\theta-\pi/2)=\sin\theta$, $\sin(\theta-\pi/2)=-\cos\theta$).
+    ## From \( h^{(3)} \) to \( h^{(4)} \)
 
-    So:
+    Differentiate each term.
 
-    $$
-    \ddot{h} = \frac{1}{M}\begin{bmatrix} (z - \frac{M\ell\dot\theta^2}{6})\sin\theta - \frac{M\ell v_2}{6z}\cos\theta \\ -(z - \frac{M\ell\dot\theta^2}{6})\cos\theta - \frac{M\ell v_2}{6z}\sin\theta - Mg\end{bmatrix}
-    $$
+    ### Term 1
+    \[
+    \frac{d}{dt}\left(\frac{\dot{z}}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}\right)
+    =
+    \frac{\ddot{z}}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    +
+    \frac{\dot{z}\dot{\theta}}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    \]
 
-    **Key simplification:** Notice that $\ddot{h}$ can be written cleanly. Define the effective force in inertial frame. After carrying the algebra, one finds:
+    ### Term 2
+    \[
+    \frac{d}{dt}\left(\frac{z\dot{\theta}}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}\right)
+    =
+    \frac{\dot{z}\dot{\theta}}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    +
+    \frac{z\ddot{\theta}}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    -
+    \frac{z\dot{\theta}^2}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    \]
 
-    $$
-    \ddot{h} = \frac{z}{M}\begin{bmatrix}\sin\theta \\ -\cos\theta\end{bmatrix} - \begin{bmatrix}0 \\ g\end{bmatrix} + \text{(terms in } v_2 \text{ that vanish in }\ddot{h}\text{)}
-    $$
+    ---
 
-    More precisely, with $\ddot{z} = v_1$ and the structure, we identify:
+    ### Collecting terms
 
-    $$
-    \ddot{h} = \frac{z}{M}\begin{bmatrix}\sin\theta \\ -\cos\theta\end{bmatrix} - \begin{bmatrix}0\\g\end{bmatrix}
-    $$
+    \[
+    h^{(4)} =
+    \frac{\ddot{z}}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    +
+    \frac{2\dot{z}\dot{\theta}}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    +
+    \frac{z\ddot{\theta}}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    -
+    \frac{z\dot{\theta}^2}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    \]
 
-    ## Third Derivative $h^{(3)}$
+    ---
 
-    Differentiate $\ddot{h}$ with respect to time:
+    ## Input substitution
 
-    $$
-    h^{(3)} = \frac{d}{dt}\left[\frac{z}{M}\begin{bmatrix}\sin\theta \\ -\cos\theta\end{bmatrix}\right]
-    $$
+    Let:
+    \[
+    \ddot{z} = v_1, \quad z\ddot{\theta} = v_2
+    \]
 
-    $$
-    = \frac{\dot{z}}{M}\begin{bmatrix}\sin\theta \\ -\cos\theta\end{bmatrix} + \frac{z}{M}\dot{\theta}\begin{bmatrix}\cos\theta \\ \sin\theta\end{bmatrix}
-    $$
+    Then:
 
-    $$
-    \boxed{h^{(3)} = \frac{\dot{z}}{M}\begin{bmatrix}\sin\theta \\ -\cos\theta\end{bmatrix} + \frac{z\dot{\theta}}{M}\begin{bmatrix}\cos\theta \\ \sin\theta\end{bmatrix}}
-    $$
+    \[
+    \boxed{
+    h^{(4)} =
+    \frac{1}{M}
+    \begin{bmatrix}
+    \sin\theta & \cos\theta \\
+    -\cos\theta & \sin\theta
+    \end{bmatrix}
+    \begin{bmatrix}
+    v_1 \\
+    v_2
+    \end{bmatrix}
+    +
+    \frac{1}{M}
+    \left(
+    2\dot{z}\dot{\theta}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    -
+    z\dot{\theta}^2
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    \right)
+    }
+    \]
 
-    This depends only on $\theta, \dot\theta, z, \dot z$ (and $M$) — no input $v$ appears yet.
+    ---
 
-    ## Fourth Derivative $h^{(4)}$
+    ## Interpretation
 
-    Differentiate $h^{(3)}$:
+    The control-dependent part can be written as:
 
-    $$
-    h^{(4)} = \frac{\ddot{z}}{M}\begin{bmatrix}\sin\theta\\-\cos\theta\end{bmatrix} + \frac{\dot{z}\dot{\theta}}{M}\begin{bmatrix}\cos\theta\\\sin\theta\end{bmatrix} + \frac{\dot{z}\dot{\theta}}{M}\begin{bmatrix}\cos\theta\\\sin\theta\end{bmatrix} + \frac{z\ddot{\theta}}{M}\begin{bmatrix}\cos\theta\\\sin\theta\end{bmatrix} + \frac{z\dot{\theta}}{M}(-\dot\theta)\begin{bmatrix}\sin\theta\\-\cos\theta\end{bmatrix}
-    $$
+    \[
+    \frac{1}{M} R(\theta - \pi/2)\, v
+    \]
 
-    Collecting carefully:
+    with:
 
-    $$
-    h^{(4)} = \frac{\ddot{z}}{M}\begin{bmatrix}\sin\theta\\-\cos\theta\end{bmatrix} + \frac{2\dot{z}\dot{\theta}}{M}\begin{bmatrix}\cos\theta\\\sin\theta\end{bmatrix} + \frac{z\ddot{\theta}}{M}\begin{bmatrix}\cos\theta\\\sin\theta\end{bmatrix} - \frac{z\dot{\theta}^2}{M}\begin{bmatrix}\sin\theta\\-\cos\theta\end{bmatrix}
-    $$
+    \[
+    \det(R(\theta - \pi/2)) = 1
+    \]
 
-    Now substitute the auxiliary dynamics: $\ddot{z} = v_1$ and from the torque equation $J\ddot\theta = -f\frac{\ell}{2}\sin\phi$, with the auxiliary system one finds $z\ddot\theta = \frac{\ell M}{6}v_2$ (this is exactly how the auxiliary system is constructed), so $\ddot\theta = \frac{M\ell v_2}{6z}$:
-
-    $$
-    \boxed{h^{(4)} = \frac{v_1}{M}\begin{bmatrix}\sin\theta\\-\cos\theta\end{bmatrix} + \frac{2\dot{z}\dot{\theta}}{M}\begin{bmatrix}\cos\theta\\\sin\theta\end{bmatrix} + \frac{\ell v_2}{6}\begin{bmatrix}\cos\theta\\\sin\theta\end{bmatrix} - \frac{z\dot{\theta}^2}{M}\begin{bmatrix}\sin\theta\\-\cos\theta\end{bmatrix}}
-    $$
-
-    **Summary:** $h^{(4)}$ depends on $\theta, \dot\theta, z, \dot z, v_1, v_2$ — the inputs $v=(v_1,v_2)$ appear linearly, which is exactly what enables exact linearization in the next step.
+    so the mapping is always invertible and allows arbitrary shaping of \( h^{(4)} \).
     """)
     return
 
@@ -2552,76 +2683,68 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Setup: What we know from previous parts
+    # Exact Linearization: \( h^{(4)} = u \)
 
-    From the prior derivations, the fourth derivative of the output is:
+    ## Setup
 
-    $$
-    h^{(4)} = P(\theta, \dot\theta, z, \dot z)\, v + q(\theta, \dot\theta, z, \dot z)
-    $$
-
-    where $P$ is a $2 \times 2$ matrix (the decoupling matrix) and $q$ is a vector of lower-order terms.
-
-    Concretely:
-
-    $$
-    h^{(4)} = \begin{bmatrix} \cos\theta & -\frac{M\ell}{6z}\sin\theta \\ \sin\theta & \frac{M\ell}{6z}\cos\theta \end{bmatrix} \begin{bmatrix} \dot{v}_1 \\ v_2 \end{bmatrix} + q(\theta, \dot\theta, z, \dot z)
-    $$
-    ## The New Auxiliary System
-
-    Introduce $u = (u_1, u_2)$ and define $v$ via:
-
-    $$
-    v = P(\theta, z)^{-1}\bigl(u - q(\theta, \dot\theta, z, \dot z)\bigr)
-    $$
-
-    This is well-defined as long as $\det P \neq 0$.
-
-    Compute $\det P$:
-
-    $$
-    \det P = \cos\theta \cdot \frac{M\ell}{6z}\cos\theta + \sin\theta \cdot \frac{M\ell}{6z}\sin\theta = \frac{M\ell}{6z} \neq 0 \quad \text{(since } z \neq 0\text{)}
-    $$
-
-    So $P$ is always invertible when $z \neq 0$, and explicitly:
-
-    $$
-    P^{-1} = \frac{6z}{M\ell}\begin{bmatrix}
-    \frac{M\ell}{6z}\cos\theta & \frac{M\ell}{6z}\sin\theta \\
-    \sin\theta & -\cos\theta
-    \end{bmatrix} = \begin{bmatrix}
-    \cos\theta & \sin\theta \\
-    \frac{6z}{M\ell}\sin\theta & -\frac{6z}{M\ell}\cos\theta
+    From the previous derivation:
+    \[
+    h^{(4)} =
+    \underbrace{
+    \frac{1}{M}
+    \begin{bmatrix}
+    \sin\theta & \cos\theta \\
+    -\cos\theta & \sin\theta
     \end{bmatrix}
-    $$
+    }_{=: \frac{1}{M}P(\theta)}
+    \begin{bmatrix}
+    v_1 \\
+    v_2
+    \end{bmatrix}
+    +
+    b(\theta, \dot\theta, z, \dot z)
+    \]
 
-    ## Result
+    where \( b \) contains all drift terms independent of \( v \).
 
-    Substituting back:
+    ---
 
-    $$
-    h^{(4)} = P \cdot v + q = P \cdot P^{-1}(u - q) + q = u
-    $$
+    ## Invertibility of \( P(\theta) \)
 
-    $$
-    \boxed{h^{(4)} = u}
-    $$
+    \[
+    \det P(\theta) = \sin^2\theta + \cos^2\theta = 1 \quad \forall\, \theta
+    \]
 
-    ## The Overall Control Chain
+    \[
+    P(\theta)^{-1} =
+    \begin{bmatrix}
+    \sin\theta & -\cos\theta \\
+    \cos\theta & \sin\theta
+    \end{bmatrix}
+    \]
 
-    $$
-    u \longrightarrow \underbrace{v = P^{-1}(u - q)}_{\text{new auxiliary}} \longrightarrow \underbrace{(f_x, f_y) = R(\theta-\pi/2)(\cdots)}_{\text{first auxiliary}} \longrightarrow \underbrace{\text{booster ODE}}_{\dot s = F(s,f,\phi)} \longrightarrow h
-    $$
+    ---
 
-    ## Key Insight
+    ## Auxiliary Control Law
 
-    The full system from $u$ to $h$ is now a **double integrator in each channel** (order 4), i.e., two decoupled chains:
+    Choose:
+    \[
+    \boxed{
+    v = M\,P(\theta)^{-1}\bigl(u - b(\theta,\dot\theta,z,\dot z)\bigr)
+    }
+    \]
 
-    $$
-    h_x^{(4)} = u_1, \quad h_y^{(4)} = u_2
-    $$
+    ---
 
-    This is **exactly linear** and trivially controllable. Any linear controller (pole placement, LQR, PID) on this flat output suffices.
+    ## Closed-Loop Substitution
+
+    Substituting into the dynamics:
+
+    \[
+    h^{(4)} =
+    \frac{1}{M}P(\theta)\cdot M P(\theta)^{-1}(u - b) + b
+    = u
+    \]
     """)
     return
 
@@ -2639,83 +2762,100 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## The Output
-
     $$
-    h = \begin{bmatrix} x - \frac{\ell}{6}\sin\theta \\ y + \frac{\ell}{6}\cos\theta \end{bmatrix}
-    $$
-
-    ## Auxiliary System Dynamics
-
-    The auxiliary system gives $\ddot{z} = v_1$, and the reactor force in Cartesian coordinates comes from:
-
-    $$
-    \begin{bmatrix} f_x \\ f_y \end{bmatrix} = R\!\left(\theta - \frac{\pi}{2}\right)\begin{bmatrix} z - \frac{M\ell\dot\theta^2}{6} \\ \frac{M\ell v_2}{6z} \end{bmatrix}
-    $$
-
-    where
-
-    $$
-    R(\alpha) = \begin{bmatrix}\cos\alpha & -\sin\alpha \\ \sin\alpha & -\cos\alpha\end{bmatrix}
-    $$
-
-    ### Computing $R(\theta - \pi/2)$ explicitly
-
-    Since $\cos(\theta-\pi/2) = \sin\theta$ and $\sin(\theta-\pi/2) = -\cos\theta$:
-
-    $$
-    R(\theta-\pi/2) = \begin{bmatrix}
-    \sin\theta & -\cos\theta \\
-    -\cos\theta & -\sin\theta
+    \mathbf{h} =
+    \begin{bmatrix}
+    x - \frac{\ell}{6} \sin\theta \\[6pt]
+    y + \frac{\ell}{6} \cos\theta
     \end{bmatrix}
     $$
 
-    ## Derivatives of $h$
-
-    ### $h$ (0th order)
+    ## Rotation matrix
 
     $$
-    h_x = x - \frac{\ell}{6}\sin\theta, \qquad h_y = y + \frac{\ell}{6}\cos\theta
+    R(\alpha)=
+    \begin{bmatrix}
+    +\cos\alpha & -\sin\alpha \\
+    +\sin\alpha & -\cos\alpha
+    \end{bmatrix}
     $$
 
-    ### $\dot{h}$ (1st order)
+    Hence:
 
     $$
-    \dot{h}_x = \dot{x} - \frac{\ell}{6}\dot\theta\cos\theta, \qquad \dot{h}_y = \dot{y} - \frac{\ell}{6}\dot\theta\sin\theta
+    R\!\left(\theta - \frac{\pi}{2}\right)
+    =
+    \begin{bmatrix}
+    +\sin\theta & +\cos\theta \\
+    -\cos\theta & +\sin\theta
+    \end{bmatrix}
     $$
 
-    ### $\ddot{h}$ (2nd order)
-
-    From the equations of motion $M\ddot{x} = f_x$, $M\ddot{y} = f_y - Mg$:
+    ## Auxiliary system dynamics
 
     $$
-    \ddot{h}_x = \ddot{x} - \frac{\ell}{6}(\ddot\theta\cos\theta - \dot\theta^2\sin\theta) = \frac{f_x}{M} - \frac{\ell}{6}\ddot\theta\cos\theta + \frac{\ell}{6}\dot\theta^2\sin\theta
+    \ddot{z} = v_1
     $$
 
-    Using $J\ddot\theta = -f\frac{\ell}{2}\sin\phi$ and the relationship through the auxiliary system, after substitution (shown in the previous sub-question), one gets:
+    and
 
     $$
-    \ddot{h} = \frac{z}{M}\begin{bmatrix}\sin\theta \\ -\cos\theta\end{bmatrix}
+    \begin{bmatrix}
+    f_x \\ f_y
+    \end{bmatrix}
+    =
+    R\!\left(\theta - \frac{\pi}{2}\right)
+    \begin{bmatrix}
+    z - \frac{M\ell}{6} \dot{\theta}^2 \\[6pt]
+    \frac{M\ell\, v_2}{6z}
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    \sin\theta\!\left(z - \frac{M\ell\dot\theta^2}{6}\right) + \cos\theta\cdot\frac{M\ell v_2}{6z} \\[6pt]
+    -\cos\theta\!\left(z - \frac{M\ell\dot\theta^2}{6}\right) + \sin\theta\cdot\frac{M\ell v_2}{6z}
+    \end{bmatrix}
     $$
 
-    ### $h^{(3)}$ (3rd order)
-
-    Differentiating $\ddot{h}$:
+    ## First derivative
 
     $$
-    h^{(3)}_x = \frac{1}{M}(\dot{z}\sin\theta + z\dot\theta\cos\theta)
+    \dot{h}_x = \dot{x} - \frac{\ell}{6}\, \dot{\theta} \cos\theta
     $$
 
     $$
-    h^{(3)}_y = \frac{1}{M}(-\dot{z}\cos\theta + z\dot\theta\sin\theta)
+    \dot{h}_y = \dot{y} - \frac{\ell}{6}\, \dot{\theta} \sin\theta
     $$
 
-    Or in vector form:
+    ## Second derivative
+
+    Differentiating $\dot{h}$ and substituting $M\ddot{x} = f_x$, $M\ddot{y} = f_y - Mg$,
+    and the torque equation $J\ddot{\theta} = -f(\ell/2)\sin\phi$, all $\dot{\theta}^2$ and
+    $\ddot{\theta}$ terms cancel and we obtain:
 
     $$
-    h^{(3)} = \frac{1}{M}\begin{bmatrix}
-    \dot{z}\sin\theta + z\dot\theta\cos\theta \\
-    -\dot{z}\cos\theta + z\dot\theta\sin\theta
+    \ddot{\mathbf{h}} =
+    \frac{z}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    -
+    \begin{bmatrix}
+    0 \\
+    g
+    \end{bmatrix}
+    $$
+
+    ## Third derivative
+
+    Differentiating $\ddot{h}$ with respect to time via the product rule:
+
+    $$
+    \mathbf{h}^{(3)} =
+    \frac{1}{M}
+    \begin{bmatrix}
+    \dot{z}\sin\theta + z\dot{\theta}\cos\theta \\[6pt]
+    -\dot{z}\cos\theta + z\dot{\theta}\sin\theta
     \end{bmatrix}
     $$
     """)
@@ -2723,7 +2863,7 @@ def _(mo):
 
 
 @app.cell
-def _(M, l, np):
+def _(M, g, l, np):
     def Tr(x, dx, y, dy, theta, dtheta, z, dz):
         # h
         h_x  = x - (l/6) * np.sin(theta)
@@ -2733,9 +2873,9 @@ def _(M, l, np):
         dh_x = dx - (l/6) * dtheta * np.cos(theta)
         dh_y = dy - (l/6) * dtheta * np.sin(theta)
 
-        # d2h  (auxiliary system plugged in: z encodes the normal force component)
+        # d2h  
         d2h_x = (z / M) * np.sin(theta)
-        d2h_y = (z / M) * (-np.cos(theta))   # −g cancels out by construction of z
+        d2h_y = (z / M) * (-np.cos(theta)) - g
 
         # d3h
         d3h_x = (dz * np.sin(theta) + z * dtheta * np.cos(theta)) / M
