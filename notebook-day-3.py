@@ -2194,7 +2194,7 @@ def _(mo):
     Let
     $$
     R(\alpha) =
-    \begin{bmatrix} +\cos \alpha & -\sin \alpha \\ +\sin \alpha & -\cos \alpha
+    \begin{bmatrix} +\cos \alpha & -\sin \alpha \\ +\sin \alpha & \cos \alpha
     \end{bmatrix}
     $$
 
@@ -2404,7 +2404,7 @@ def _(mo):
     z - \frac{M\ell\dot{\theta}^2}{6} \\
     \frac{M\ell v_2}{6z}
     \end{bmatrix}, \quad
-    R(\theta - \pi/2) = \begin{bmatrix}\sin\theta & -\cos\theta \\ -\cos\theta & -\sin\theta\end{bmatrix}
+    R(\theta - \pi/2) = \begin{bmatrix}\sin\theta & \cos\theta \\ -\cos\theta & \sin\theta\end{bmatrix}
     $$
 
     Thus:
@@ -2776,7 +2776,7 @@ def _(mo):
     R(\alpha)=
     \begin{bmatrix}
     +\cos\alpha & -\sin\alpha \\
-    +\sin\alpha & -\cos\alpha
+    +\sin\alpha & \cos\alpha
     \end{bmatrix}
     $$
 
@@ -2896,6 +2896,220 @@ def _(mo):
 
     Implement the corresponding function `T_inv`.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Inversion of the State from Output Derivatives
+
+    ## Starting Point
+
+    From the auxiliary system, we established:
+    \[
+    \ddot{h}
+    =
+    \frac{z}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    -
+    \begin{bmatrix}
+    0 \\
+    g
+    \end{bmatrix}
+    \]
+
+    We want to recover:
+    \[
+    (x, \dot x, y, \dot y, \theta, \dot\theta, z, \dot z)
+    \]
+    from:
+    \[
+    (h, \dot h, \ddot h, h^{(3)})
+    \]
+
+    ---
+
+    ## Step 1: Recover \( z \) and \( \theta \) from \( \ddot{h} \)
+
+    Define:
+    \[
+    a_1 = \ddot{h}_x, \qquad a_2 = \ddot{h}_y + g
+    \]
+
+    Then:
+    \[
+    \begin{bmatrix}
+    a_1 \\
+    a_2
+    \end{bmatrix}
+    =
+    \frac{z}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    \]
+
+    This vector has norm \( |z|/M \). Since \( z < 0 \):
+    \[
+    z = -M\sqrt{a_1^2 + a_2^2}
+    \]
+
+    The unit direction gives:
+    \[
+    \sin\theta = \frac{-a_1}{\sqrt{a_1^2 + a_2^2}}, \qquad
+    \cos\theta = \frac{a_2}{\sqrt{a_1^2 + a_2^2}}
+    \]
+
+    Thus:
+    \[
+    \theta = \operatorname{atan2}(-a_1, a_2)
+    \]
+
+    ---
+
+    ## Step 2: Recover \( x, y \) from \( h \) and \( \theta \)
+
+    From the definition of \( h \):
+
+    \[
+    h_x = x - \frac{\ell}{6}\sin\theta
+    \quad \Rightarrow \quad
+    x = h_x + \frac{\ell}{6}\sin\theta
+    \]
+
+    \[
+    h_y = y + \frac{\ell}{6}\cos\theta
+    \quad \Rightarrow \quad
+    y = h_y - \frac{\ell}{6}\cos\theta
+    \]
+
+    Since \( \theta \) is known, \( x \) and \( y \) follow directly.
+
+    ---
+
+    ## Step 3: Recover \( \dot z \) and \( \dot\theta \) from \( h^{(3)} \)
+
+    Differentiate \( \ddot{h} \):
+
+    \[
+    h^{(3)} =
+    \frac{\dot z}{M}
+    \begin{bmatrix}
+    \sin\theta \\
+    -\cos\theta
+    \end{bmatrix}
+    +
+    \frac{z\dot\theta}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    \]
+
+    The vectors:
+    \[
+    (\sin\theta, -\cos\theta), \quad (\cos\theta, \sin\theta)
+    \]
+    are orthogonal, so we project.
+
+    ---
+
+    ### Projection 1 (recover \( \dot z \))
+
+    \[
+    \dot z
+    =
+    M\left(
+    h^{(3)}_x \sin\theta
+    -
+    h^{(3)}_y \cos\theta
+    \right)
+    \]
+
+    ---
+
+    ### Projection 2 (recover \( \dot\theta \))
+
+    \[
+    \dot\theta
+    =
+    \frac{M}{z}
+    \left(
+    h^{(3)}_x \cos\theta
+    +
+    h^{(3)}_y \sin\theta
+    \right)
+    \]
+
+    Since \( z \neq 0 \), both are well-defined.
+
+    ---
+
+    ## Step 4: Recover \( \dot x, \dot y \) from \( \dot h \)
+
+    From \( \dot h \):
+
+    \[
+    \dot h_x = \dot x - \frac{\ell}{6}\dot\theta\cos\theta
+    \quad \Rightarrow \quad
+    \dot x = \dot h_x + \frac{\ell}{6}\dot\theta\cos\theta
+    \]
+
+    \[
+    \dot h_y = \dot y - \frac{\ell}{6}\dot\theta\sin\theta
+    \quad \Rightarrow \quad
+    \dot y = \dot h_y + \frac{\ell}{6}\dot\theta\sin\theta
+    \]
+
+    Since \( \theta \) and \( \dot\theta \) are known, \( \dot x \) and \( \dot y \) follow immediately.
+
+    ---
+
+    ## Conclusion
+
+    The mapping:
+    \[
+    (h, \dot h, \ddot h, h^{(3)}) \;\longrightarrow\; (x, \dot x, y, \dot y, \theta, \dot\theta, z, \dot z)
+    \]
+
+    is fully invertible under \( z \neq 0 \), enabling complete state reconstruction from output derivatives.
+    """)
+    return
+
+
+@app.cell
+def _(M, g, l, np):
+    def T_inv(h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y):
+
+        # Step 1: z and theta from d2h
+        a1 = d2h_x        # = (z/M)*sin(theta)
+        a2 = d2h_y + g    # = -(z/M)*cos(theta)
+
+        norm  = np.sqrt(a1**2 + a2**2)
+        z     = -M * norm          # z < 0 assumption
+        sin_t = -a1 / norm
+        cos_t =  a2 / norm
+        theta = np.arctan2(sin_t, cos_t)
+
+        # Step 2: x, y from h and theta
+        x = h_x + (l/6) * sin_t
+        y = h_y - (l/6) * cos_t
+
+        # Step 3: dz, dtheta from d3h (orthogonal projections)
+        dz     = M * (d3h_x * sin_t - d3h_y * cos_t)
+        dtheta = (M / z) * (d3h_x * cos_t + d3h_y * sin_t)
+
+        # Step 4: dx, dy from dh and dtheta
+        dx = dh_x + (l/6) * dtheta * cos_t
+        dy = dh_y + (l/6) * dtheta * sin_t
+
+        return x, dx, y, dy, theta, dtheta, z, dz
+
     return
 
 
