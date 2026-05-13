@@ -3342,7 +3342,7 @@ def _(M, compute, g, l, np, plt):
     axes.flat[-1].set_xlabel("time t")
     plt.tight_layout()
     plt.show()
-    return
+    return (fun,)
 
 
 @app.cell(hide_code=True)
@@ -3358,6 +3358,76 @@ def _(mo):
 
     Make the graph of the relevant variables as a function of time, then make an animation out of the same result. Comment and iterate if necessary!
     """)
+    return
+
+
+@app.cell
+def _(booster_anim, fun, mo, np, plt, world):
+    def plot_trajectory_and_animate():
+        tf = 10.0  # final time, matches compute() call above
+        y_final = 2/3 * 2  # = 2/3 * l, the target y
+
+        t_vals = np.linspace(0, tf, 500)
+        states = np.array([fun(ti) for ti in t_vals])
+
+        x_local = states[:, 0]
+        dx      = states[:, 1]
+        y_local = states[:, 2]
+        dy      = states[:, 3]
+        theta   = states[:, 4]
+        dtheta  = states[:, 5]
+        z       = states[:, 6]
+        dz      = states[:, 7]
+        f       = states[:, 8]
+        phi     = states[:, 9]
+
+        fig2, axes1 = plt.subplots(3, 2, figsize=(12, 8))
+
+        axes1[0,0].plot(t_vals, x_local, 'b-')
+        axes1[0,0].set_ylabel('x (m)')
+        axes1[0,0].grid(True)
+
+        axes1[0,1].plot(t_vals, y_local, 'g-')
+        axes1[0,1].axhline(y_final, color='k', linestyle='--',
+                           label=f'cible y = {y_final:.2f} m')
+        axes1[0,1].set_ylabel('y (m)')
+        axes1[0,1].legend()
+        axes1[0,1].grid(True)
+
+        axes1[1,0].plot(t_vals, theta, 'r-')
+        axes1[1,0].set_ylabel('θ (rad)')
+        axes1[1,0].grid(True)
+
+        axes1[1,1].plot(t_vals, dtheta, 'm-')
+        axes1[1,1].set_ylabel('ω (rad/s)')
+        axes1[1,1].grid(True)
+
+        axes1[2,0].plot(t_vals, f, 'c-')
+        axes1[2,0].set_ylabel('f (N)')
+        axes1[2,0].set_xlabel('t (s)')
+        axes1[2,0].grid(True)
+
+        axes1[2,1].plot(t_vals, phi, color='orange')
+        axes1[2,1].set_ylabel('φ (rad)')
+        axes1[2,1].set_xlabel('t (s)')
+        axes1[2,1].grid(True)
+
+        plt.suptitle('Exact Linearisation – Trajectoire planifiée')
+        plt.tight_layout()
+        plt.show()
+
+        # Animation
+        def x_fun(ti):     return fun(ti)[0]
+        def y_fun(ti):     return fun(ti)[2]
+        def theta_fun(ti): return fun(ti)[4]
+        def f_fun(ti):     return fun(ti)[8]
+        def phi_fun(ti):   return fun(ti)[9]
+
+        anim_svg  = booster_anim(x_fun, y_fun, theta_fun, f_fun, phi_fun, T=tf)
+        world_svg = world([-6, 6, -2, 22], anim_svg)
+        return mo.Html(world_svg).center()
+
+    plot_trajectory_and_animate()
     return
 
 
